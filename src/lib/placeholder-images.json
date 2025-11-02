@@ -1,3 +1,34 @@
 {
-  "placeholderImages": []
+  "placeholderImages": [
+    {
+      "id": "banco-pacifico",
+      "description": "Banco del Pacífico building exterior",
+      "imageUrl": "https://images.unsplash.com/photo-1555238920-7a6bea18473b?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw5fHxtb2Rlcm4lMjBidWlsZGluZ3xlbnwwfHx8fDE3NjE5OTA5NjV8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "modern building"
+    },
+    {
+      "id": "banco-pichincha",
+      "description": "Banco Pichincha corporate office",
+      "imageUrl": "https://images.unsplash.com/photo-1603549620052-ddbb4b72340d?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8c2t5c2NyYXBlciUyMGNpdHl8ZW58MHx8fHwxNzYyMDE0NDIyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "skyscraper city"
+    },
+    {
+      "id": "coop-jep",
+      "description": "Cooperativa JEP branch",
+      "imageUrl": "https://images.unsplash.com/photo-1706074797611-a02f9ed06439?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwxMHx8b2ZmaWNlJTIwaW50ZXJpb3J8ZW58MHx8fHwxNzYyMDQ5NzEyfDA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "office interior"
+    },
+    {
+      "id": "banco-guayaquil",
+      "description": "Banco Guayaquil headquarters",
+      "imageUrl": "https://images.unsplash.com/photo-1485920694980-9c5db37b0d44?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHwyfHxmaW5hbmNpYWwlMjBkaXN0cmljdHxlbnwwfHx8fDE3NjIwNTUzMTh8MA&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "financial district"
+    },
+    {
+      "id": "coop-alianza",
+      "description": "Cooperativa Alianza del Valle office",
+      "imageUrl": "https://images.unsplash.com/photo-1724632824319-4b43e74e000c?crop=entropy&cs=tinysrgb&fit=max&fm=jpg&ixid=M3w3NDE5ODJ8MHwxfHNlYXJjaHw3fHxjb21tdW5pdHklMjBiYW5rfGVufDB8fHx8MTc2MjA1NTMxOHww&ixlib=rb-4.1.0&q=80&w=1080",
+      "imageHint": "community bank"
+    }
+  ]
 }
