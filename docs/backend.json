@@ -1,0 +1,76 @@
+{
+  "entities": {
+    "Institution": {
+      "$schema": "http://json-schema.org/draft-07/schema#",
+      "title": "Institution",
+      "type": "object",
+      "description": "Represents a financial institution (Bank or Cooperativa) and its key financial indicators.",
+      "properties": {
+        "id": {
+          "type": "string",
+          "description": "Unique identifier for the Institution entity."
+        },
+        "name": {
+          "type": "string",
+          "description": "Name of the institution."
+        },
+        "type": {
+          "type": "string",
+          "description": "Type of institution (e.g., 'Bank', 'Cooperativa')."
+        },
+        "solvencia": {
+          "type": "number",
+          "description": "Solvencia indicator for the institution."
+        },
+        "liquidez": {
+          "type": "number",
+          "description": "Liquidez indicator for the institution."
+        },
+        "morosidad": {
+          "type": "number",
+          "description": "Morosidad indicator for the institution."
+        },
+        "activosTotales": {
+          "type": "number",
+          "description": "Total assets of the institution."
+        }
+      },
+      "required": [
+        "id",
+        "name",
+        "type",
+        "solvencia",
+        "liquidez",
+        "morosidad",
+        "activosTotales"
+      ]
+    }
+  },
+  "auth": {
+    "providers": [
+      "password",
+      "anonymous"
+    ]
+  },
+  "firestore": {
+    "structure": [
+      {
+        "path": "/institutions/{institutionId}",
+        "definition": {
+          "entityName": "Institution",
+          "schema": {
+            "$ref": "#/backend/entities/Institution"
+          },
+          "description": "Stores financial institution data. No denormalization is needed as read access is public or admin-controlled.",
+          "params": [
+            {
+              "name": "institutionId",
+              "description": "Unique identifier for the institution."
+            }
+          ]
+        }
+      }
+    ],
+    "reasoning": "Given the application's requirements for managing financial institution data, the following Firestore structure is recommended. This design prioritizes simplicity and ease of implementation, focusing on the core features of admin-managed data and public read access. The structure is designed for the given constraints: few institutions and simple data points.\n\n1.  **/institutions/{institutionId}**: This collection stores data for each financial institution.\n\n    *   *Authorization Independence:* Since the listing is public, no denormalization is needed for `list` operations. However, if in the future, the listing requires authorization (e.g., only logged-in users can see the institutions), a separate `/public_institutions` collection should be created, where data is copied for public reads. For admin access, no denormalization is required.\n    *   *QAPs:* The structure supports secure `list` operations. The admin panel will manage the data in the `/institutions` collection. The public listing can directly read from this collection (if it is public).\n\nThis structure is simple, easily manageable via the admin panel, and supports the real-time updates feature.\n"
+  }
+}
