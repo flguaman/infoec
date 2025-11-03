@@ -1,16 +1,19 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { collection, onSnapshot, query } from 'firebase/firestore';
-import { db } from '@/lib/firebase';
+import { collection, onSnapshot, query, Firestore } from 'firebase/firestore';
 import type { Institution } from '@/lib/types';
+import { useFirestore } from '@/firebase';
 
 export function useInstitutionsStream() {
+  const firestore = useFirestore();
   const [institutions, setInstitutions] = useState<Institution[]>([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const q = query(collection(db, 'institutions'));
+    if (!firestore) return;
+
+    const q = query(collection(firestore, 'institutions'));
 
     const unsubscribe = onSnapshot(
       q,
@@ -29,7 +32,9 @@ export function useInstitutionsStream() {
     );
 
     return () => unsubscribe();
-  }, []);
+  }, [firestore]);
 
   return { institutions, loading };
 }
+
+    

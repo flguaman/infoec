@@ -1,6 +1,14 @@
 'use client';
-import { collection, doc, getDocs, writeBatch } from 'firebase/firestore';
-import { db } from './firebase';
+import {
+  collection,
+  doc,
+  getDocs,
+  writeBatch,
+  updateDoc,
+  DocumentReference,
+  Firestore,
+} from 'firebase/firestore';
+
 import type { Institution } from './types';
 
 const initialInstitutions: Omit<Institution, 'id'>[] = [
@@ -10,7 +18,7 @@ const initialInstitutions: Omit<Institution, 'id'>[] = [
     solvencia: 11.5,
     liquidez: 35.2,
     morosidad: 3.1,
-    activos_totales: 7800000000,
+    activosTotales: 7800000000,
   },
   {
     name: 'Banco Pichincha',
@@ -18,7 +26,7 @@ const initialInstitutions: Omit<Institution, 'id'>[] = [
     solvencia: 12.1,
     liquidez: 33.8,
     morosidad: 2.8,
-    activos_totales: 13500000000,
+    activosTotales: 13500000000,
   },
   {
     name: 'Cooperativa JEP',
@@ -26,7 +34,7 @@ const initialInstitutions: Omit<Institution, 'id'>[] = [
     solvencia: 14.8,
     liquidez: 40.1,
     morosidad: 4.5,
-    activos_totales: 2900000000,
+    activosTotales: 2900000000,
   },
   {
     name: 'Banco Guayaquil',
@@ -34,7 +42,7 @@ const initialInstitutions: Omit<Institution, 'id'>[] = [
     solvencia: 10.9,
     liquidez: 30.5,
     morosidad: 3.5,
-    activos_totales: 9200000000,
+    activosTotales: 9200000000,
   },
   {
     name: 'Cooperativa Alianza del Valle',
@@ -42,11 +50,11 @@ const initialInstitutions: Omit<Institution, 'id'>[] = [
     solvencia: 13.5,
     liquidez: 38.7,
     morosidad: 5.2,
-    activos_totales: 1500000000,
+    activosTotales: 1500000000,
   },
 ];
 
-export async function seedDatabase() {
+export async function seedDatabase(db: Firestore) {
   const institutionsCollection = collection(db, 'institutions');
   const snapshot = await getDocs(institutionsCollection);
   if (snapshot.empty) {
@@ -65,11 +73,10 @@ export async function seedDatabase() {
 }
 
 export async function updateInstitutionData(
-  id: string,
-  data: Partial<Institution>
+  institutionDocRef: DocumentReference,
+  data: Partial<Omit<Institution, 'id'>>
 ) {
-  const institutionDoc = doc(db, 'institutions', id);
-  const batch = writeBatch(db);
-  batch.update(institutionDoc, data);
-  await batch.commit();
+  await updateDoc(institutionDocRef, data);
 }
+
+    

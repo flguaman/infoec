@@ -1,9 +1,9 @@
 'use client';
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
-import { useInstitutionsStream } from '@/hooks/use-institutions-stream';
+import { useAuth } from '@/firebase';
+import { useCollection, useMemoFirebase } from '@/firebase';
 import type { Institution } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
@@ -18,21 +18,63 @@ import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { InstitutionForm } from './institution-form';
 import { useToast } from '@/hooks/use-toast';
 import { seedDatabase } from '@/lib/firestore-service';
-import { Loader2, LogOut, Pencil, Database, RefreshCw } from 'lucide-react';
+import {
+  Loader2,
+  LogOut,
+  Pencil,
+  Database,
+  Building,
+  Landmark,
+  ShieldCheck,
+} from 'lucide-react';
 import Logo from '../shared/logo';
+import {
+  Card,
+  CardContent,
+  CardHeader,
+  CardTitle,
+  CardDescription,
+} from '@/components/ui/card';
+import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart';
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  ResponsiveContainer,
+} from 'recharts';
+import { collection, query } from 'firebase/firestore';
+import { useFirestore } from '@/firebase';
 
 export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
-  const { institutions, loading } = useInstitutionsStream();
+  const auth = useAuth();
+  const firestore = useFirestore();
+
+  const institutionsQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'institutions')) : null),
+    [firestore]
+  );
+  const { data: institutions, isLoading: loading } =
+    useCollection<Institution>(institutionsQuery);
+
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedInstitution, setSelectedInstitution] =
     useState<Institution | null>(null);
   const [isSeeding, setIsSeeding] = useState(false);
 
   const handleLogout = async () => {
-    await signOut(auth);
-    router.push('/login');
+    if (auth) {
+      await signOut(auth);
+      router.push('/login');
+    }
   };
 
   const handleEdit = (institution: Institution) => {
@@ -46,9 +88,10 @@ export default function AdminDashboard() {
   };
 
   const handleSeed = async () => {
+    if (!firestore) return;
     setIsSeeding(true);
     try {
-      const seeded = await seedDatabase();
+      const seeded = await seedDatabase(firestore);
       if (seeded) {
         toast({
           title: 'Base de datos poblada',
@@ -60,9 +103,10 @@ export default function AdminDashboard() {
           description: 'No se realizaron cambios.',
         });
       }
-    } catch (error) {
+    } catch (error: any) {
       toast({
         title: 'Error al poblar la base de datos',
+        description: error.message,
         variant: 'destructive',
       });
     } finally {
@@ -70,70 +114,207 @@ export default function AdminDashboard() {
     }
   };
 
-  return (
-    <div className="min-h-screen bg-muted/40 p-4 sm:p-6 md:p-8">
-      <div className="container mx-auto">
-        <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-8">
-          <div>
-            <Logo className="h-10 mb-2" />
-            <h1 className="text-3xl font-bold text-foreground">
-              Panel de Administración
-            </h1>
-            <p className="text-muted-foreground">
-              Gestione los indicadores de las instituciones financieras.
-            </p>
-          </div>
-          <div className="flex items-center gap-2 mt-4 sm:mt-0">
-            <Button variant="outline" onClick={handleLogout}>
-              <LogOut className="mr-2 h-4 w-4" />
-              Cerrar Sesión
-            </Button>
-          </div>
-        </header>
+  const stats = useMemo(() => {
+    if (!institutions) {
+      return {
+        total: 0,
+        banks: 0,
+        cooperatives: 0,
+        avgSolvency: 0,
+      };
+    }
+    const banks = institutions.filter((inst) => inst.type === 'Banco').length;
+    const cooperatives = institutions.filter(
+      (inst) => inst.type === 'Cooperativa'
+    ).length;
+    const totalSolvency = institutions.reduce(
+      (acc, inst) => acc + inst.solvencia,
+      0
+    );
+    const avgSolvency =
+      institutions.length > 0 ? totalSolvency / institutions.length : 0;
 
-        <div className="bg-card border rounded-lg shadow-sm">
-          <div className="p-6 flex justify-between items-center">
-             <h2 className="text-xl font-semibold">Instituciones</h2>
-             {institutions.length === 0 && !loading && (
+    return {
+      total: institutions.length,
+      banks,
+      cooperatives,
+      avgSolvency,
+    };
+  }, [institutions]);
+
+  const chartData = useMemo(() => {
+    return (
+      institutions?.map((inst) => ({
+        name: inst.name,
+        solvencia: inst.solvencia,
+        fill: inst.type === 'Banco' ? 'var(--color-bancos)' : 'var(--color-cooperativas)',
+      })) || []
+    );
+  }, [institutions]);
+
+  const chartConfig: ChartConfig = {
+    solvencia: {
+      label: 'Solvencia',
+    },
+    bancos: {
+      label: 'Bancos',
+      color: 'hsl(var(--chart-1))',
+    },
+    cooperativas: {
+      label: 'Cooperativas',
+      color: 'hsl(var(--chart-2))',
+    },
+  };
+
+  return (
+    <div className="flex-1 space-y-4 p-4 sm:p-6 md:p-8 pt-6 bg-muted/40 min-h-screen">
+      <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
+        <div>
+          <Logo className="h-10 mb-2" />
+          <h1 className="text-3xl font-bold tracking-tight text-foreground">
+            Panel de Administración
+          </h1>
+          <p className="text-muted-foreground">
+            Visualice y gestione los indicadores de las instituciones financieras.
+          </p>
+        </div>
+        <div className="flex items-center gap-2 mt-4 sm:mt-0">
+          <Button variant="outline" onClick={handleLogout}>
+            <LogOut className="mr-2 h-4 w-4" />
+            Cerrar Sesión
+          </Button>
+        </div>
+      </header>
+
+      <main className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Instituciones Totales
+            </CardTitle>
+            <Building className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.total}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Bancos</CardTitle>
+            <Landmark className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.banks}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">Cooperativas</CardTitle>
+            <Landmark className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{stats.cooperatives}</div>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+            <CardTitle className="text-sm font-medium">
+              Solvencia Promedio
+            </CardTitle>
+            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">
+              {stats.avgSolvency.toFixed(2)}%
+            </div>
+          </CardContent>
+        </Card>
+      </main>
+
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Comparativa de Solvencia</CardTitle>
+            <CardDescription>
+              Visualización de la solvencia de cada institución.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="pl-2">
+            {loading ? (
+               <div className="flex items-center justify-center h-[350px]">
+                  <Loader2 className="mr-2 h-8 w-8 animate-spin" />
+                  <span>Cargando gráfico...</span>
+                </div>
+            ) : (
+            <ChartContainer config={chartConfig} className="h-[350px] w-full">
+              <ResponsiveContainer>
+                <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
+                  <CartesianGrid vertical={false} />
+                  <XAxis
+                    dataKey="name"
+                    tickLine={false}
+                    tickMargin={10}
+                    axisLine={false}
+                    tickFormatter={(value) => value.slice(0, 3)}
+                  />
+                  <YAxis unit="%" />
+                  <ChartTooltip
+                    cursor={false}
+                    content={<ChartTooltipContent indicator="dot" />}
+                  />
+                  <Bar dataKey="solvencia" radius={8} />
+                </BarChart>
+              </ResponsiveContainer>
+            </ChartContainer>
+            )}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader className="flex flex-row items-center justify-between">
+            <div>
+              <CardTitle>Lista de Instituciones</CardTitle>
+              <CardDescription>
+                Edite los indicadores financieros.
+              </CardDescription>
+            </div>
+            {(!institutions || institutions.length === 0) && !loading && (
               <Button onClick={handleSeed} disabled={isSeeding}>
-                {isSeeding ? <Loader2 className="mr-2 h-4 w-4 animate-spin"/> : <Database className="mr-2 h-4 w-4" />}
-                Poblar Datos Iniciales
+                {isSeeding ? (
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                ) : (
+                  <Database className="mr-2 h-4 w-4" />
+                )}
+                Poblar Datos
               </Button>
             )}
-          </div>
-          <div className="overflow-x-auto">
+          </CardHeader>
+          <CardContent>
             <Table>
               <TableHeader>
                 <TableRow>
                   <TableHead>Nombre</TableHead>
                   <TableHead>Tipo</TableHead>
-                  <TableHead className="text-right">Solvencia (%)</TableHead>
-                  <TableHead className="text-right">Liquidez (%)</TableHead>
-                  <TableHead className="text-right">Morosidad (%)</TableHead>
-                  <TableHead className="text-right">Activos Totales</TableHead>
+                  <TableHead className="text-right">Solvencia</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center h-24">
+                    <TableCell colSpan={4} className="text-center h-24">
                       <div className="flex items-center justify-center">
                         <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                         Cargando datos...
                       </div>
                     </TableCell>
                   </TableRow>
-                ) : institutions.length > 0 ? (
+                ) : institutions && institutions.length > 0 ? (
                   institutions.map((inst) => (
                     <TableRow key={inst.id}>
                       <TableCell className="font-medium">{inst.name}</TableCell>
                       <TableCell>{inst.type}</TableCell>
-                      <TableCell className="text-right">{inst.solvencia.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">{inst.liquidez.toFixed(2)}</TableCell>
-                      <TableCell className="text-right">{inst.morosidad.toFixed(2)}</TableCell>
                       <TableCell className="text-right">
-                        ${(inst.activos_totales / 1_000_000_000).toFixed(2)}B
+                        {inst.solvencia.toFixed(2)}%
                       </TableCell>
                       <TableCell className="text-right">
                         <Button
@@ -148,15 +329,15 @@ export default function AdminDashboard() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center h-24">
+                    <TableCell colSpan={4} className="text-center h-24">
                       No hay instituciones para mostrar.
                     </TableCell>
                   </TableRow>
                 )}
               </TableBody>
             </Table>
-          </div>
-        </div>
+          </CardContent>
+        </Card>
       </div>
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
@@ -170,3 +351,5 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+    

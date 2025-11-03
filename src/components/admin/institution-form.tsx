@@ -21,6 +21,8 @@ import {
 import { useToast } from '@/hooks/use-toast';
 import { updateInstitutionData } from '@/lib/firestore-service';
 import { Loader2 } from 'lucide-react';
+import { useFirestore } from '@/firebase';
+import { doc } from 'firebase/firestore';
 
 type Props = {
   institution: Institution | null;
@@ -32,6 +34,7 @@ type FormErrors = { [K in keyof FormState]?: string };
 
 export function InstitutionForm({ institution, onClose }: Props) {
   const { toast } = useToast();
+  const firestore = useFirestore();
   const [formState, setFormState] = useState<FormState>({});
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
@@ -49,29 +52,37 @@ export function InstitutionForm({ institution, onClose }: Props) {
   const handleSelectChange = (value: 'Banco' | 'Cooperativa') => {
     setFormState((prev) => ({ ...prev, type: value }));
   };
-  
+
   const validate = () => {
     const newErrors: FormErrors = {};
     if (formState.name) {
       const nameValidation = institutionSchema.name(formState.name);
       if (nameValidation !== true) newErrors.name = nameValidation;
     }
-    // Add other validations similarly for each field
     if (formState.solvencia !== undefined) {
-      const solvenciaValidation = institutionSchema.solvencia(formState.solvencia);
-      if(solvenciaValidation !== true) newErrors.solvencia = solvenciaValidation;
+      const solvenciaValidation = institutionSchema.solvencia(
+        formState.solvencia
+      );
+      if (solvenciaValidation !== true)
+        newErrors.solvencia = solvenciaValidation;
     }
     if (formState.liquidez !== undefined) {
       const liquidezValidation = institutionSchema.liquidez(formState.liquidez);
-      if(liquidezValidation !== true) newErrors.liquidez = liquidezValidation;
+      if (liquidezValidation !== true) newErrors.liquidez = liquidezValidation;
     }
     if (formState.morosidad !== undefined) {
-      const morosidadValidation = institutionSchema.morosidad(formState.morosidad);
-      if(morosidadValidation !== true) newErrors.morosidad = morosidadValidation;
+      const morosidadValidation = institutionSchema.morosidad(
+        formState.morosidad
+      );
+      if (morosidadValidation !== true)
+        newErrors.morosidad = morosidadValidation;
     }
-    if (formState.activos_totales !== undefined) {
-      const activosValidation = institutionSchema.activos_totales(formState.activos_totales);
-      if(activosValidation !== true) newErrors.activos_totales = activosValidation;
+    if (formState.activosTotales !== undefined) {
+      const activosValidation = institutionSchema.activosTotales(
+        formState.activosTotales
+      );
+      if (activosValidation !== true)
+        newErrors.activosTotales = activosValidation;
     }
 
     setErrors(newErrors);
@@ -80,19 +91,22 @@ export function InstitutionForm({ institution, onClose }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate() || !institution?.id) return;
-    
+    if (!validate() || !institution?.id || !firestore) return;
+
     setLoading(true);
     try {
       const dataToUpdate = {
-          name: formState.name,
-          type: formState.type,
-          solvencia: Number(formState.solvencia),
-          liquidez: Number(formState.liquidez),
-          morosidad: Number(formState.morosidad),
-          activos_totales: Number(formState.activos_totales),
+        name: formState.name,
+        type: formState.type,
+        solvencia: Number(formState.solvencia),
+        liquidez: Number(formState.liquidez),
+        morosidad: Number(formState.morosidad),
+        activosTotales: Number(formState.activosTotales),
       };
-      await updateInstitutionData(institution.id, dataToUpdate);
+      
+      const institutionRef = doc(firestore, 'institutions', institution.id);
+      await updateInstitutionData(institutionRef, dataToUpdate);
+
       toast({
         title: 'Datos actualizados',
         description: `Los datos de ${institution.name} se han guardado.`,
@@ -118,44 +132,69 @@ export function InstitutionForm({ institution, onClose }: Props) {
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-4 py-4">
-        {Object.keys(institutionSchema).map((key) => {
-            const fieldKey = key as keyof Institution;
-            if(fieldKey === 'id') return null;
+        {Object.keys(institutionSchema)
+          .filter((key) => !['id'].includes(key))
+          .map((key) => {
+            const fieldKey = key as keyof Omit<Institution, 'id'>;
 
             if (fieldKey === 'type') {
-                return (
-                    <div key={fieldKey} className="grid grid-cols-4 items-center gap-4">
-                        <Label htmlFor={fieldKey} className="text-right">Tipo</Label>
-                        <Select onValueChange={handleSelectChange} value={formState.type}>
-                            <SelectTrigger className="col-span-3">
-                                <SelectValue placeholder="Seleccione un tipo"/>
-                            </SelectTrigger>
-                            <SelectContent>
-                                <SelectItem value="Banco">Banco</SelectItem>
-                                <SelectItem value="Cooperativa">Cooperativa</SelectItem>
-                            </SelectContent>
-                        </Select>
-                    </div>
-                );
+              return (
+                <div
+                  key={fieldKey}
+                  className="grid grid-cols-4 items-center gap-4"
+                >
+                  <Label htmlFor={fieldKey} className="text-right">
+                    Tipo
+                  </Label>
+                  <Select
+                    onValueChange={handleSelectChange}
+                    value={formState.type}
+                  >
+                    <SelectTrigger className="col-span-3">
+                      <SelectValue placeholder="Seleccione un tipo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Banco">Banco</SelectItem>
+                      <SelectItem value="Cooperativa">Cooperativa</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              );
             }
 
             return (
-                 <div key={fieldKey} className="grid grid-cols-4 items-center gap-4">
-                    <Label htmlFor={fieldKey} className="text-right capitalize">
-                        {key.replace('_', ' ')}
-                    </Label>
-                    <Input
-                        id={fieldKey}
-                        type={typeof formState[fieldKey] === 'number' ? 'number' : 'text'}
-                        step="any"
-                        value={formState[fieldKey] || ''}
-                        onChange={(e) => handleChange(fieldKey, typeof formState[fieldKey] === 'number' ? parseFloat(e.target.value) : e.target.value)}
-                        className="col-span-3"
-                    />
-                    {errors[fieldKey] && <p className="col-span-4 text-right text-sm text-destructive">{errors[fieldKey]}</p>}
-                </div>
-            )
-        })}
+              <div
+                key={fieldKey}
+                className="grid grid-cols-4 items-center gap-4"
+              >
+                <Label htmlFor={fieldKey} className="text-right capitalize">
+                  {key.replace(/([A-Z])/g, ' $1').replace('totales', 'Totales')}
+                </Label>
+                <Input
+                  id={fieldKey}
+                  type={
+                    typeof formState[fieldKey] === 'number' ? 'number' : 'text'
+                  }
+                  step="any"
+                  value={formState[fieldKey] || ''}
+                  onChange={(e) =>
+                    handleChange(
+                      fieldKey,
+                      typeof formState[fieldKey] === 'number'
+                        ? parseFloat(e.target.value)
+                        : e.target.value
+                    )
+                  }
+                  className="col-span-3"
+                />
+                {errors[fieldKey] && (
+                  <p className="col-span-4 text-right text-sm text-destructive">
+                    {errors[fieldKey]}
+                  </p>
+                )}
+              </div>
+            );
+          })}
       </div>
       <DialogFooter>
         <Button type="button" variant="outline" onClick={onClose}>
@@ -169,3 +208,5 @@ export function InstitutionForm({ institution, onClose }: Props) {
     </form>
   );
 }
+
+    

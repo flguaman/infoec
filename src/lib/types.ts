@@ -5,7 +5,7 @@ export type Institution = {
   solvencia: number;
   liquidez: number;
   morosidad: number;
-  activos_totales: number;
+  activosTotales: number;
 };
 
 export const institutionSchema = {
@@ -14,5 +14,7 @@ export const institutionSchema = {
   solvencia: (v: number) => (v >= 0 && v <= 100) || 'La solvencia debe estar entre 0 y 100.',
   liquidez: (v: number) => (v >= 0 && v <= 100) || 'La liquidez debe estar entre 0 y 100.',
   morosidad: (v: number) => (v >= 0 && v <= 100) || 'La morosidad debe estar entre 0 y 100.',
-  activos_totales: (v: number) => v > 0 || 'Los activos totales deben ser un número positivo.',
+  activosTotales: (v: number) => v > 0 || 'Los activos totales deben ser un número positivo.',
 };
+
+    
