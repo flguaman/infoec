@@ -2,7 +2,10 @@
 
 import { useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signInWithEmailAndPassword } from 'firebase/auth';
+import {
+  signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
+} from 'firebase/auth';
 import { auth } from '@/lib/firebase';
 import { Button } from '@/components/ui/button';
 import {
@@ -37,9 +40,33 @@ export default function LoginForm() {
         description: 'Redirigiendo al panel de administración...',
       });
       router.push('/admin');
-    } catch (error: any) {
-      setError('Credenciales inválidas. Por favor, intente de nuevo.');
-      console.error(error);
+    } catch (signInError: any) {
+      // If the user doesn't exist, try creating it with the demo credentials
+      if (
+        (signInError.code === 'auth/user-not-found' ||
+          signInError.code === 'auth/invalid-credential') &&
+        email === 'admin@infoec.com' &&
+        password === 'password123'
+      ) {
+        try {
+          await createUserWithEmailAndPassword(auth, email, password);
+          // After creating, try signing in again
+          await signInWithEmailAndPassword(auth, email, password);
+          toast({
+            title: 'Cuenta de demo creada',
+            description: 'Redirigiendo al panel de administración...',
+          });
+          router.push('/admin');
+        } catch (signUpError: any) {
+          setError(
+            'Error al crear la cuenta de demo. Verifique la consola.'
+          );
+          console.error(signUpError);
+        }
+      } else {
+        setError('Credenciales inválidas. Por favor, intente de nuevo.');
+        console.error(signInError);
+      }
     } finally {
       setLoading(false);
     }
