@@ -1,5 +1,6 @@
 'use client';
 import { useState, useMemo } from 'react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
 import { useAuth } from '@/firebase';
@@ -27,8 +28,7 @@ import {
   Landmark,
   ShieldCheck,
   PlusCircle,
-  TrendingUp,
-  TrendingDown,
+  Home,
 } from 'lucide-react';
 import Logo from '../shared/logo';
 import {
@@ -224,6 +224,12 @@ export default function AdminDashboard() {
           </p>
         </div>
         <div className="flex items-center gap-2 mt-4 sm:mt-0">
+          <Link href="/" passHref>
+            <Button variant="outline">
+              <Home className="mr-2 h-4 w-4" />
+              Página Principal
+            </Button>
+          </Link>
           <Button variant="outline" onClick={handleLogout}>
             <LogOut className="mr-2 h-4 w-4" />
             Cerrar Sesión
@@ -370,5 +376,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-    
