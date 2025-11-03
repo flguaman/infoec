@@ -5,6 +5,7 @@ import {
   getDocs,
   writeBatch,
   updateDoc,
+  addDoc,
   DocumentReference,
   Firestore,
 } from 'firebase/firestore';
@@ -70,6 +71,14 @@ export async function seedDatabase(db: Firestore) {
     console.log('Database already contains data, skipping seed.');
     return false;
   }
+}
+
+export async function addInstitutionData(
+  db: Firestore,
+  data: Omit<Institution, 'id'>
+) {
+  const institutionsCollection = collection(db, 'institutions');
+  await addDoc(institutionsCollection, data);
 }
 
 export async function updateInstitutionData(

@@ -19,7 +19,7 @@ import {
   DialogFooter,
 } from '@/components/ui/dialog';
 import { useToast } from '@/hooks/use-toast';
-import { updateInstitutionData } from '@/lib/firestore-service';
+import { updateInstitutionData, addInstitutionData } from '@/lib/firestore-service';
 import { Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
@@ -29,23 +29,36 @@ type Props = {
   onClose: () => void;
 };
 
-type FormState = Partial<Institution>;
+type FormState = Partial<Omit<Institution, 'id'>>;
 type FormErrors = { [K in keyof FormState]?: string };
+
+const defaultInitialState: FormState = {
+    name: '',
+    type: 'Banco',
+    solvencia: 0,
+    liquidez: 0,
+    morosidad: 0,
+    activosTotales: 0,
+}
 
 export function InstitutionForm({ institution, onClose }: Props) {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const [formState, setFormState] = useState<FormState>({});
+  const [formState, setFormState] = useState<FormState>(defaultInitialState);
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
+
+  const isEditing = !!institution;
 
   useEffect(() => {
     if (institution) {
       setFormState(institution);
+    } else {
+      setFormState(defaultInitialState)
     }
   }, [institution]);
 
-  const handleChange = (field: keyof Institution, value: string | number) => {
+  const handleChange = (field: keyof FormState, value: string | number) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
   };
 
@@ -55,9 +68,13 @@ export function InstitutionForm({ institution, onClose }: Props) {
 
   const validate = () => {
     const newErrors: FormErrors = {};
-    if (formState.name) {
-      const nameValidation = institutionSchema.name(formState.name);
-      if (nameValidation !== true) newErrors.name = nameValidation;
+    if (formState.name !== undefined) {
+        const nameValidation = institutionSchema.name(formState.name);
+        if (nameValidation !== true) newErrors.name = nameValidation;
+    }
+     if (formState.type !== undefined) {
+      const typeValidation = institutionSchema.type(formState.type);
+      if (typeValidation !== true) newErrors.type = typeValidation;
     }
     if (formState.solvencia !== undefined) {
       const solvenciaValidation = institutionSchema.solvencia(
@@ -91,31 +108,39 @@ export function InstitutionForm({ institution, onClose }: Props) {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!validate() || !institution?.id || !firestore) return;
+    if (!validate() || !firestore) return;
 
     setLoading(true);
     try {
-      const dataToUpdate = {
-        name: formState.name,
-        type: formState.type,
-        solvencia: Number(formState.solvencia),
-        liquidez: Number(formState.liquidez),
-        morosidad: Number(formState.morosidad),
-        activosTotales: Number(formState.activosTotales),
+      const dataToSave = {
+        name: formState.name || '',
+        type: formState.type || 'Banco',
+        solvencia: Number(formState.solvencia) || 0,
+        liquidez: Number(formState.liquidez) || 0,
+        morosidad: Number(formState.morosidad) || 0,
+        activosTotales: Number(formState.activosTotales) || 0,
       };
-      
-      const institutionRef = doc(firestore, 'institutions', institution.id);
-      await updateInstitutionData(institutionRef, dataToUpdate);
 
-      toast({
-        title: 'Datos actualizados',
-        description: `Los datos de ${institution.name} se han guardado.`,
-      });
+      if (isEditing && institution) {
+          const institutionRef = doc(firestore, 'institutions', institution.id);
+          await updateInstitutionData(institutionRef, dataToSave);
+          toast({
+            title: 'Datos actualizados',
+            description: `Los datos de ${institution.name} se han guardado.`,
+          });
+      } else {
+          await addInstitutionData(firestore, dataToSave);
+           toast({
+            title: 'Institución creada',
+            description: `Se ha creado la nueva institución ${dataToSave.name}.`,
+          });
+      }
+      
       onClose();
     } catch (error) {
       toast({
-        title: 'Error al actualizar',
-        description: 'No se pudieron guardar los cambios.',
+        title: `Error al ${isEditing ? 'actualizar' : 'crear'}`,
+        description: `No se pudieron guardar los datos.`,
         variant: 'destructive',
       });
     } finally {
@@ -126,9 +151,9 @@ export function InstitutionForm({ institution, onClose }: Props) {
   return (
     <form onSubmit={handleSubmit}>
       <DialogHeader>
-        <DialogTitle>Editar Institución</DialogTitle>
+        <DialogTitle>{isEditing ? 'Editar' : 'Nueva'} Institución</DialogTitle>
         <DialogDescription>
-          Modifique los indicadores para {institution?.name}.
+          {isEditing ? `Modifique los indicadores para ${institution?.name}.` : 'Complete los datos de la nueva institución.'}
         </DialogDescription>
       </DialogHeader>
       <div className="grid gap-4 py-4">
@@ -173,14 +198,14 @@ export function InstitutionForm({ institution, onClose }: Props) {
                 <Input
                   id={fieldKey}
                   type={
-                    typeof formState[fieldKey] === 'number' ? 'number' : 'text'
+                    typeof formState[fieldKey] === 'number' || fieldKey === 'solvencia' || fieldKey === 'liquidez' || fieldKey === 'morosidad' || fieldKey === 'activosTotales' ? 'number' : 'text'
                   }
                   step="any"
                   value={formState[fieldKey] || ''}
                   onChange={(e) =>
                     handleChange(
                       fieldKey,
-                      typeof formState[fieldKey] === 'number'
+                      typeof formState[fieldKey] === 'number' || e.target.type === 'number'
                         ? parseFloat(e.target.value)
                         : e.target.value
                     )

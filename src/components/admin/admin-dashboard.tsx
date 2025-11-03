@@ -26,6 +26,9 @@ import {
   Building,
   Landmark,
   ShieldCheck,
+  PlusCircle,
+  TrendingUp,
+  TrendingDown,
 } from 'lucide-react';
 import Logo from '../shared/logo';
 import {
@@ -51,6 +54,55 @@ import {
 } from 'recharts';
 import { collection, query } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
+
+const CustomBarChart = ({ data, dataKey, label, unit }: { data: any[], dataKey: string, label: string, unit:string }) => {
+  const chartConfig: ChartConfig = {
+    [dataKey]: {
+      label: label,
+    },
+  };
+
+  return (
+    <Card>
+      <CardHeader>
+        <CardTitle>Comparativa de {label}</CardTitle>
+        <CardDescription>
+          Visualización del indicador de {label.toLowerCase()} de cada institución.
+        </CardDescription>
+      </CardHeader>
+      <CardContent className="pl-2">
+        {!data || data.length === 0 ? (
+           <div className="flex items-center justify-center h-[350px]">
+              <Loader2 className="mr-2 h-8 w-8 animate-spin" />
+              <span>Cargando gráfico...</span>
+            </div>
+        ) : (
+        <ChartContainer config={chartConfig} className="h-[350px] w-full">
+          <ResponsiveContainer>
+            <BarChart data={data} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="name"
+                tickLine={false}
+                tickMargin={10}
+                axisLine={false}
+                tickFormatter={(value) => value.slice(0, 3)}
+              />
+              <YAxis unit={unit} />
+              <ChartTooltip
+                cursor={false}
+                content={<ChartTooltipContent indicator="dot" />}
+              />
+              <Bar dataKey={dataKey} radius={8} />
+            </BarChart>
+          </ResponsiveContainer>
+        </ChartContainer>
+        )}
+      </CardContent>
+    </Card>
+  );
+};
+
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -79,6 +131,11 @@ export default function AdminDashboard() {
 
   const handleEdit = (institution: Institution) => {
     setSelectedInstitution(institution);
+    setIsFormOpen(true);
+  };
+  
+  const handleAddNew = () => {
+    setSelectedInstitution(null);
     setIsFormOpen(true);
   };
 
@@ -147,24 +204,12 @@ export default function AdminDashboard() {
       institutions?.map((inst) => ({
         name: inst.name,
         solvencia: inst.solvencia,
+        liquidez: inst.liquidez,
+        morosidad: inst.morosidad,
         fill: inst.type === 'Banco' ? 'var(--color-bancos)' : 'var(--color-cooperativas)',
       })) || []
     );
   }, [institutions]);
-
-  const chartConfig: ChartConfig = {
-    solvencia: {
-      label: 'Solvencia',
-    },
-    bancos: {
-      label: 'Bancos',
-      color: 'hsl(var(--chart-1))',
-    },
-    cooperativas: {
-      label: 'Cooperativas',
-      color: 'hsl(var(--chart-2))',
-    },
-  };
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-6 md:p-8 pt-6 bg-muted/40 min-h-screen">
@@ -231,52 +276,21 @@ export default function AdminDashboard() {
         </Card>
       </main>
 
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-2">
-        <Card>
-          <CardHeader>
-            <CardTitle>Comparativa de Solvencia</CardTitle>
-            <CardDescription>
-              Visualización de la solvencia de cada institución.
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pl-2">
-            {loading ? (
-               <div className="flex items-center justify-center h-[350px]">
-                  <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-                  <span>Cargando gráfico...</span>
-                </div>
-            ) : (
-            <ChartContainer config={chartConfig} className="h-[350px] w-full">
-              <ResponsiveContainer>
-                <BarChart data={chartData} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
-                  <CartesianGrid vertical={false} />
-                  <XAxis
-                    dataKey="name"
-                    tickLine={false}
-                    tickMargin={10}
-                    axisLine={false}
-                    tickFormatter={(value) => value.slice(0, 3)}
-                  />
-                  <YAxis unit="%" />
-                  <ChartTooltip
-                    cursor={false}
-                    content={<ChartTooltipContent indicator="dot" />}
-                  />
-                  <Bar dataKey="solvencia" radius={8} />
-                </BarChart>
-              </ResponsiveContainer>
-            </ChartContainer>
-            )}
-          </CardContent>
-        </Card>
-        <Card>
+      <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
+        <div className="lg:col-span-3 space-y-4">
+           <CustomBarChart data={chartData} dataKey="solvencia" label="Solvencia" unit="%" />
+           <CustomBarChart data={chartData} dataKey="liquidez" label="Liquidez" unit="%" />
+           <CustomBarChart data={chartData} dataKey="morosidad" label="Morosidad" unit="%" />
+        </div>
+        <Card className="lg:col-span-4">
           <CardHeader className="flex flex-row items-center justify-between">
             <div>
               <CardTitle>Lista de Instituciones</CardTitle>
               <CardDescription>
-                Edite los indicadores financieros.
+                Cree o edite los indicadores financieros.
               </CardDescription>
             </div>
+            <div className="flex gap-2">
             {(!institutions || institutions.length === 0) && !loading && (
               <Button onClick={handleSeed} disabled={isSeeding}>
                 {isSeeding ? (
@@ -287,6 +301,11 @@ export default function AdminDashboard() {
                 Poblar Datos
               </Button>
             )}
+            <Button onClick={handleAddNew}>
+                <PlusCircle className="mr-2 h-4 w-4" />
+                Nueva Institución
+            </Button>
+            </div>
           </CardHeader>
           <CardContent>
             <Table>
