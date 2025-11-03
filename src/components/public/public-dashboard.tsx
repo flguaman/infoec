@@ -1,13 +1,12 @@
 'use client';
-import { useState, useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import type { Institution } from '@/lib/types';
-import { useInstitutionsStream } from '@/hooks/use-institutions-stream';
 import {
   Card,
   CardContent,
+  CardDescription,
   CardHeader,
   CardTitle,
-  CardDescription,
 } from '@/components/ui/card';
 import {
   Table,
@@ -18,27 +17,22 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import {
+  ChartConfig,
+  ChartContainer,
+  ChartTooltip,
+  ChartTooltipContent,
+} from '@/components/ui/chart';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
+import { Loader2 } from 'lucide-react';
+import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from '@/components/ui/select';
-import {
-  ChartConfig,
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-} from '@/components/ui/chart';
-import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-} from 'recharts';
-import { Loader2, Building, Landmark, Percent } from 'lucide-react';
+import { useCollection, useFirestore, useMemoFirebase } from '@/firebase';
+import { collection, query } from 'firebase/firestore';
 import { Badge } from '../ui/badge';
 
 const CustomBarChart = ({
@@ -55,26 +49,22 @@ const CustomBarChart = ({
   const chartConfig: ChartConfig = {
     [dataKey]: {
       label: label,
-      color: 'hsl(var(--primary))',
-    },
-    bancos: {
-      label: 'Bancos',
       color: 'hsl(var(--chart-1))',
-    },
-    cooperativas: {
-      label: 'Cooperativas',
-      color: 'hsl(var(--chart-2))',
     },
   };
 
   return (
     <Card>
       <CardHeader>
-        <CardTitle className="text-xl">Comparativa de {label}</CardTitle>
+        <CardTitle>Comparativa de {label}</CardTitle>
+        <CardDescription>
+          Visualización del indicador de {label.toLowerCase()} de cada
+          institución.
+        </CardDescription>
       </CardHeader>
       <CardContent className="pl-2">
         {!data || data.length === 0 ? (
-          <div className="flex h-[350px] items-center justify-center">
+          <div className="flex items-center justify-center h-[350px]">
             <Loader2 className="mr-2 h-8 w-8 animate-spin" />
             <span>Cargando gráfico...</span>
           </div>
@@ -98,11 +88,7 @@ const CustomBarChart = ({
                   cursor={false}
                   content={<ChartTooltipContent indicator="dot" />}
                 />
-                <Bar
-                  dataKey={dataKey}
-                  radius={8}
-                  fill="var(--color-primary)"
-                />
+                <Bar dataKey={dataKey} radius={8} fill="var(--color-chart-1)" />
               </BarChart>
             </ResponsiveContainer>
           </ChartContainer>
@@ -113,215 +99,119 @@ const CustomBarChart = ({
 };
 
 export default function PublicDashboard() {
-  const { institutions, loading } = useInstitutionsStream();
-  const [indicador, setIndicador] = useState('solvencia');
-  const [tipo, setTipo] = useState('todos');
+  const firestore = useFirestore();
+  const institutionsQuery = useMemoFirebase(
+    () => (firestore ? query(collection(firestore, 'institutions')) : null),
+    [firestore]
+  );
+  const { data: institutions, isLoading: loading } = useCollection<Institution>(institutionsQuery);
 
-  const filteredInstitutions = useMemo(() => {
-    return institutions.filter((inst) => {
-      if (tipo === 'todos') return true;
-      return inst.type.toLowerCase() === tipo;
-    });
-  }, [institutions, tipo]);
+  const [filterType, setFilterType] = useState<'all' | 'Banco' | 'Cooperativa'>('all');
+  const [sortKey, setSortKey] = useState<keyof Institution>('solvencia');
+
+  const filteredAndSortedInstitutions = useMemo(() => {
+    if (!institutions) return [];
+    return institutions
+      .filter((inst) => filterType === 'all' || inst.type === filterType)
+      .sort((a, b) => (b[sortKey] as number) - (a[sortKey] as number));
+  }, [institutions, filterType, sortKey]);
 
   const chartData = useMemo(() => {
-    return filteredInstitutions.map((inst) => ({
+    return filteredAndSortedInstitutions.map((inst) => ({
       name: inst.name,
-      [indicador]: inst[indicador as keyof Institution],
+      solvencia: inst.solvencia,
+      liquidez: inst.liquidez,
+      morosidad: inst.morosidad,
+      activosTotales: inst.activosTotales,
     }));
-  }, [filteredInstitutions, indicador]);
+  }, [filteredAndSortedInstitutions]);
 
-  const stats = useMemo(() => {
-    const data = filteredInstitutions;
-    if (!data || data.length === 0)
-      return { total: 0, avgSolvencia: 0, avgLiquidez: 0, avgMorosidad: 0 };
-    const total = data.length;
-    const avgSolvencia =
-      data.reduce((acc, inst) => acc + inst.solvencia, 0) / total;
-    const avgLiquidez =
-      data.reduce((acc, inst) => acc + inst.liquidez, 0) / total;
-    const avgMorosidad =
-      data.reduce((acc, inst) => acc + inst.morosidad, 0) / total;
-    return { total, avgSolvencia, avgLiquidez, avgMorosidad };
-  }, [filteredInstitutions]);
-
-  const indicadores = [
-    { value: 'solvencia', label: 'Solvencia', unit: '%' },
-    { value: 'liquidez', label: 'Liquidez', unit: '%' },
-    { value: 'morosidad', label: 'Morosidad', unit: '%' },
-  ];
 
   return (
     <div className="container mx-auto p-4 sm:p-6 md:p-8">
-      <div className="mb-8 text-center">
-        <h1 className="text-4xl font-bold tracking-tight text-primary sm:text-5xl">
-          Explorador Financiero de Ecuador
+      <header className="text-center mb-10">
+        <h1 className="text-4xl font-extrabold tracking-tight lg:text-5xl text-primary">
+          Indicadores Financieros de Ecuador
         </h1>
         <p className="mt-4 text-lg text-muted-foreground">
-          Visualice y compare los indicadores clave de bancos y cooperativas.
+          Explore y compare la salud financiera de los bancos y cooperativas del país.
         </p>
-      </div>
+      </header>
 
-      <div className="mb-6 grid grid-cols-2 gap-4 md:grid-cols-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Instituciones
-            </CardTitle>
-            <Building className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{stats.total}</div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Solvencia Prom.
-            </CardTitle>
-            <Percent className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.avgSolvencia.toFixed(2)}%
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Liquidez Prom.
-            </CardTitle>
-            <Percent className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.avgLiquidez.toFixed(2)}%
-            </div>
-          </CardContent>
-        </Card>
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Morosidad Prom.
-            </CardTitle>
-            <Percent className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.avgMorosidad.toFixed(2)}%
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         <div className="lg:col-span-2">
-          <Card className="shadow-lg">
-            <CardHeader>
-              <div className="flex flex-col items-start justify-between gap-4 sm:flex-row sm:items-center">
-                <div>
-                  <CardTitle>Análisis Comparativo</CardTitle>
-                  <CardDescription>
-                    Seleccione un indicador y tipo de institución para comparar.
-                  </CardDescription>
-                </div>
-                <div className="flex gap-2">
-                  <Select value={indicador} onValueChange={setIndicador}>
+          <Card>
+            <CardHeader className="flex flex-row items-center justify-between">
+              <div>
+                <CardTitle>Lista de Instituciones</CardTitle>
+                <CardDescription>
+                  Datos actualizados sobre las principales instituciones financieras.
+                </CardDescription>
+              </div>
+              <div className="flex gap-4">
+                 <Select value={filterType} onValueChange={(v) => setFilterType(v as any)}>
                     <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Indicador" />
+                      <SelectValue placeholder="Filtrar por tipo" />
                     </SelectTrigger>
                     <SelectContent>
-                      {indicadores.map((ind) => (
-                        <SelectItem key={ind.value} value={ind.value}>
-                          {ind.label}
-                        </SelectItem>
-                      ))}
+                      <SelectItem value="all">Todas</SelectItem>
+                      <SelectItem value="Banco">Bancos</SelectItem>
+                      <SelectItem value="Cooperativa">Cooperativas</SelectItem>
                     </SelectContent>
                   </Select>
-                  <Select value={tipo} onValueChange={setTipo}>
+                   <Select value={sortKey} onValueChange={(v) => setSortKey(v as any)}>
                     <SelectTrigger className="w-[180px]">
-                      <SelectValue placeholder="Tipo" />
+                      <SelectValue placeholder="Ordenar por" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="todos">Todos</SelectItem>
-                      <SelectItem value="banco">Bancos</SelectItem>
-                      <SelectItem value="cooperativa">Cooperativas</SelectItem>
+                      <SelectItem value="solvencia">Solvencia</SelectItem>
+                      <SelectItem value="liquidez">Liquidez</SelectItem>
+                      <SelectItem value="morosidad">Morosidad</SelectItem>
+                      <SelectItem value="activosTotales">Activos Totales</SelectItem>
                     </SelectContent>
                   </Select>
-                </div>
               </div>
             </CardHeader>
             <CardContent>
-              {loading ? (
-                <div className="flex h-[400px] items-center justify-center">
-                  <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-                  <span>Cargando datos...</span>
-                </div>
-              ) : (
-                <CustomBarChart
-                  data={chartData}
-                  dataKey={indicador}
-                  label={
-                    indicadores.find((ind) => ind.value === indicador)
-                      ?.label || ''
-                  }
-                  unit={
-                    indicadores.find((ind) => ind.value === indicador)?.unit ||
-                    ''
-                  }
-                />
-              )}
-            </CardContent>
-          </Card>
-        </div>
-        <div className="lg:col-span-1">
-          <Card className="shadow-lg">
-            <CardHeader>
-              <CardTitle>Listado de Instituciones</CardTitle>
-              <CardDescription>
-                Datos financieros clave de cada entidad.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="h-[480px] overflow-auto">
               <Table>
-                <TableHeader className="sticky top-0 bg-card">
+                <TableHeader>
                   <TableRow>
                     <TableHead>Nombre</TableHead>
                     <TableHead>Tipo</TableHead>
-                    <TableHead className="text-right">Solvencia</TableHead>
+                    <TableHead className="text-right">Solvencia (%)</TableHead>
+                    <TableHead className="text-right">Liquidez (%)</TableHead>
+                    <TableHead className="text-right">Morosidad (%)</TableHead>
+                    <TableHead className="text-right">Activos Totales</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {loading ? (
-                    <TableRow>
-                      <TableCell colSpan={3} className="h-24 text-center">
-                        <Loader2 className="mx-auto h-6 w-6 animate-spin" />
-                      </TableCell>
-                    </TableRow>
-                  ) : filteredInstitutions.length > 0 ? (
-                    filteredInstitutions.map((inst) => (
+                     <TableRow>
+                        <TableCell colSpan={6} className="text-center h-24">
+                          <div className="flex items-center justify-center">
+                            <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                            Cargando datos...
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                  ) : filteredAndSortedInstitutions.length > 0 ? (
+                    filteredAndSortedInstitutions.map((inst) => (
                       <TableRow key={inst.id}>
-                        <TableCell className="font-medium">
-                          {inst.name}
-                        </TableCell>
+                        <TableCell className="font-medium">{inst.name}</TableCell>
                         <TableCell>
-                          <Badge
-                            variant={
-                              inst.type === 'Banco' ? 'default' : 'secondary'
-                            }
-                          >
-                            {inst.type}
-                          </Badge>
+                           <Badge variant={inst.type === 'Banco' ? 'default' : 'secondary'}>{inst.type}</Badge>
                         </TableCell>
+                        <TableCell className="text-right">{inst.solvencia.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{inst.liquidez.toFixed(2)}</TableCell>
+                        <TableCell className="text-right">{inst.morosidad.toFixed(2)}</TableCell>
                         <TableCell className="text-right">
-                          {inst.solvencia.toFixed(2)}%
+                          ${(inst.activosTotales / 1_000_000_000).toFixed(2)}B
                         </TableCell>
                       </TableRow>
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell colSpan={3} className="h-24 text-center">
+                      <TableCell colSpan={6} className="text-center h-24">
                         No hay instituciones para mostrar.
                       </TableCell>
                     </TableRow>
@@ -330,6 +220,12 @@ export default function PublicDashboard() {
               </Table>
             </CardContent>
           </Card>
+        </div>
+
+        <div className="space-y-8">
+            <CustomBarChart data={chartData} dataKey="solvencia" label="Solvencia" unit="%" />
+            <CustomBarChart data={chartData} dataKey="liquidez" label="Liquidez" unit="%" />
+            <CustomBarChart data={chartData} dataKey="morosidad" label="Morosidad" unit="%" />
         </div>
       </div>
     </div>
