@@ -228,7 +228,7 @@ export function InstitutionForm({ institution, onClose }: Props) {
                 className="grid grid-cols-4 items-center gap-4"
               >
                 <Label htmlFor={fieldKey} className="text-right capitalize">
-                  {key.replace(/([A-Z])/g, ' $1').replace('totales', 'Totales')}
+                  {key === 'activosTotales' ? 'Activos Totales' : key.replace(/([A-Z])/g, ' $1')}
                 </Label>
                 <Input
                   id={fieldKey}

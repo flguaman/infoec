@@ -215,6 +215,15 @@ export default function AdminDashboard() {
       })) || []
     );
   }, [institutions]);
+  
+  const formatCurrency = (value: number) => {
+    return new Intl.NumberFormat('en-US', {
+      style: 'currency',
+      currency: 'USD',
+      notation: 'compact',
+      compactDisplay: 'short',
+    }).format(value);
+  }
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-6 md:p-8 pt-6 bg-muted/40 min-h-screen">
@@ -325,13 +334,14 @@ export default function AdminDashboard() {
                   <TableHead>Nombre</TableHead>
                   <TableHead>Tipo</TableHead>
                   <TableHead className="text-right">Solvencia</TableHead>
+                  <TableHead className="text-right">Activos Totales</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {loading ? (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center h-24">
+                    <TableCell colSpan={5} className="text-center h-24">
                       <div className="flex items-center justify-center">
                         <Loader2 className="mr-2 h-6 w-6 animate-spin" />
                         Cargando datos...
@@ -350,6 +360,9 @@ export default function AdminDashboard() {
                         {inst.solvencia.toFixed(2)}%
                       </TableCell>
                       <TableCell className="text-right">
+                        {formatCurrency(inst.activosTotales)}
+                      </TableCell>
+                      <TableCell className="text-right">
                         <Button
                           variant="ghost"
                           size="icon"
@@ -362,7 +375,7 @@ export default function AdminDashboard() {
                   ))
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={4} className="text-center h-24">
+                    <TableCell colSpan={5} className="text-center h-24">
                       No hay instituciones para mostrar.
                     </TableCell>
                   </TableRow>
