@@ -39,6 +39,7 @@ const defaultInitialState: FormState = {
     liquidez: 0,
     morosidad: 0,
     activosTotales: 0,
+    color: '#2563eb' // default primary color
 }
 
 export function InstitutionForm({ institution, onClose }: Props) {
@@ -52,7 +53,10 @@ export function InstitutionForm({ institution, onClose }: Props) {
 
   useEffect(() => {
     if (institution) {
-      setFormState(institution);
+      setFormState({
+        ...institution,
+        color: institution.color || defaultInitialState.color
+      });
     } else {
       setFormState(defaultInitialState)
     }
@@ -101,6 +105,13 @@ export function InstitutionForm({ institution, onClose }: Props) {
       if (activosValidation !== true)
         newErrors.activosTotales = activosValidation;
     }
+    if (formState.color !== undefined) {
+      const colorValidation = institutionSchema.color(
+        formState.color
+      );
+      if (colorValidation !== true)
+        newErrors.color = colorValidation;
+    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -119,6 +130,7 @@ export function InstitutionForm({ institution, onClose }: Props) {
         liquidez: Number(formState.liquidez) || 0,
         morosidad: Number(formState.morosidad) || 0,
         activosTotales: Number(formState.activosTotales) || 0,
+        color: formState.color || '#2563eb',
       };
 
       if (isEditing && institution) {
@@ -186,6 +198,29 @@ export function InstitutionForm({ institution, onClose }: Props) {
                 </div>
               );
             }
+             if (fieldKey === 'color') {
+              return (
+                <div
+                  key={fieldKey}
+                  className="grid grid-cols-4 items-center gap-4"
+                >
+                  <Label htmlFor={fieldKey} className="text-right">
+                    Color
+                  </Label>
+                  <div className='col-span-3 flex items-center gap-2'>
+                    <Input
+                      id={fieldKey}
+                      type="color"
+                      value={formState.color || '#000000'}
+                      onChange={(e) => handleChange(fieldKey, e.target.value)}
+                      className="w-10 h-10 p-1"
+                    />
+                    <span className="text-sm text-muted-foreground">{formState.color}</span>
+                  </div>
+                </div>
+              )
+            }
+
 
             return (
               <div
@@ -233,5 +268,3 @@ export function InstitutionForm({ institution, onClose }: Props) {
     </form>
   );
 }
-
-    

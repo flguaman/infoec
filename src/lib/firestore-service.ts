@@ -20,6 +20,7 @@ const initialInstitutions: Omit<Institution, 'id'>[] = [
     liquidez: 35.2,
     morosidad: 3.1,
     activosTotales: 7800000000,
+    color: '#0033a0',
   },
   {
     name: 'Banco Pichincha',
@@ -28,6 +29,7 @@ const initialInstitutions: Omit<Institution, 'id'>[] = [
     liquidez: 33.8,
     morosidad: 2.8,
     activosTotales: 13500000000,
+    color: '#ffd100',
   },
   {
     name: 'Cooperativa JEP',
@@ -36,6 +38,7 @@ const initialInstitutions: Omit<Institution, 'id'>[] = [
     liquidez: 40.1,
     morosidad: 4.5,
     activosTotales: 2900000000,
+    color: '#009640',
   },
   {
     name: 'Banco Guayaquil',
@@ -44,6 +47,7 @@ const initialInstitutions: Omit<Institution, 'id'>[] = [
     liquidez: 30.5,
     morosidad: 3.5,
     activosTotales: 9200000000,
+    color: '#e4002b',
   },
   {
     name: 'Cooperativa Alianza del Valle',
@@ -52,6 +56,7 @@ const initialInstitutions: Omit<Institution, 'id'>[] = [
     liquidez: 38.7,
     morosidad: 5.2,
     activosTotales: 1500000000,
+    color: '#f37021',
   },
 ];
 
@@ -87,5 +92,3 @@ export async function updateInstitutionData(
 ) {
   await updateDoc(institutionDocRef, data);
 }
-
-    

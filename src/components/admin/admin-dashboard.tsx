@@ -51,6 +51,7 @@ import {
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
+  Cell,
 } from 'recharts';
 import { collection, query } from 'firebase/firestore';
 import { useFirestore } from '@/firebase';
@@ -93,7 +94,11 @@ const CustomBarChart = ({ data, dataKey, label, unit }: { data: any[], dataKey: 
                 cursor={false}
                 content={<ChartTooltipContent indicator="dot" />}
               />
-              <Bar dataKey={dataKey} radius={8} />
+              <Bar dataKey={dataKey} radius={8}>
+                {data.map((entry, index) => (
+                  <Cell key={`cell-${index}`} fill={entry.color || '#8884d8'} />
+                ))}
+              </Bar>
             </BarChart>
           </ResponsiveContainer>
         </ChartContainer>
@@ -206,7 +211,7 @@ export default function AdminDashboard() {
         solvencia: inst.solvencia,
         liquidez: inst.liquidez,
         morosidad: inst.morosidad,
-        fill: inst.type === 'Banco' ? 'var(--color-bancos)' : 'var(--color-cooperativas)',
+        color: inst.color || (inst.type === 'Banco' ? 'var(--color-bancos)' : 'var(--color-cooperativas)'),
       })) || []
     );
   }, [institutions]);
@@ -336,7 +341,10 @@ export default function AdminDashboard() {
                 ) : institutions && institutions.length > 0 ? (
                   institutions.map((inst) => (
                     <TableRow key={inst.id}>
-                      <TableCell className="font-medium">{inst.name}</TableCell>
+                      <TableCell className="font-medium flex items-center gap-2">
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: inst.color || '#ccc' }} />
+                        {inst.name}
+                      </TableCell>
                       <TableCell>{inst.type}</TableCell>
                       <TableCell className="text-right">
                         {inst.solvencia.toFixed(2)}%

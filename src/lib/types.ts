@@ -6,6 +6,7 @@ export type Institution = {
   liquidez: number;
   morosidad: number;
   activosTotales: number;
+  color?: string;
 };
 
 export const institutionSchema = {
@@ -15,6 +16,5 @@ export const institutionSchema = {
   liquidez: (v: number) => (v >= 0 && v <= 100) || 'La liquidez debe estar entre 0 y 100.',
   morosidad: (v: number) => (v >= 0 && v <= 100) || 'La morosidad debe estar entre 0 y 100.',
   activosTotales: (v: number) => v > 0 || 'Los activos totales deben ser un número positivo.',
+  color: (v: string) => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(v) || 'Formato de color inválido. Use #RRGGBB.',
 };
-
-    
