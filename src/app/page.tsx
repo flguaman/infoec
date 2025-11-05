@@ -1,7 +1,21 @@
+'use client';
+
+import { useEffect } from 'react';
+import { useAuth } from '@/firebase';
+import { signOut } from 'firebase/auth';
 import PublicDashboard from '@/components/public/public-dashboard';
 import SiteHeader from '@/components/shared/site-header';
 
 export default function Home() {
+  const auth = useAuth();
+
+  useEffect(() => {
+    // Cierra la sesión si hay un usuario autenticado al visitar la página principal.
+    if (auth && auth.currentUser) {
+      signOut(auth);
+    }
+  }, [auth]);
+
   return (
     <div className="flex flex-col min-h-screen bg-background">
       <SiteHeader />
