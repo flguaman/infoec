@@ -133,7 +133,7 @@ export function DataItemForm({
       };
 
       if (isEditing && dataItem) {
-        const itemRef = doc(firestore, 'dataItems', dataItem.id);
+        const itemRef = doc(firestore, 'institutions', dataItem.id);
         await updateInstitutionData(itemRef, dataToSave);
         toast({
           title: 'Datos actualizados',

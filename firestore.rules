@@ -2,12 +2,12 @@
  * @fileOverview Firestore Security Rules for the multi-category info app.
  *
  * Core Philosophy:
- * This ruleset allows public read access to all data items while restricting
+ * This ruleset allows public read access to all data while restricting
  * write access to authenticated users, who are considered administrators.
  * This is a common pattern for apps with public content managed by admins.
  *
  * Data Structure:
- * All data is stored in the `/dataItems/{dataItemId}` collection.
+ * All data is stored in the `/institutions/{institutionId}` collection.
  */
 rules_version = '2';
 service cloud.firestore {
@@ -15,11 +15,11 @@ service cloud.firestore {
 
     /**
      * @description Grants public read access, authenticated write access.
-     * @path /dataItems/{dataItemId}
+     * @path /institutions/{institutionId}
      * @allow (get, list): Any user (authenticated or not) can read.
      * @allow (create, update, delete): Only signed-in users (admins) can write.
      */
-    match /dataItems/{dataItemId} {
+    match /institutions/{institutionId} {
       allow read: if true;
       allow write: if isSignedIn();
     }
@@ -30,5 +30,3 @@ service cloud.firestore {
     }
   }
 }
-
-    

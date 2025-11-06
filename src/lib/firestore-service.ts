@@ -12,10 +12,10 @@ import type { DataItem } from './types';
 import { initialDataItems } from './data.json';
 
 export async function seedDatabase(db: Firestore) {
-  const dataItemsCollection = collection(db, 'dataItems');
+  const institutionsCollection = collection(db, 'institutions');
   const batch = writeBatch(db);
   initialDataItems.forEach((item) => {
-    const docRef = doc(dataItemsCollection); // Create a new doc with a random ID
+    const docRef = doc(institutionsCollection); // Create a new doc with a random ID
     batch.set(docRef, item);
   });
   await batch.commit();
@@ -27,7 +27,7 @@ export async function addInstitutionData(
   db: Firestore,
   data: Omit<DataItem, 'id'>
 ) {
-  const itemsCollection = collection(db, 'dataItems');
+  const itemsCollection = collection(db, 'institutions');
   await addDoc(itemsCollection, data);
 }
 

@@ -48,7 +48,7 @@
   "firestore": {
     "structure": [
       {
-        "path": "/dataItems/{dataItemId}",
+        "path": "/institutions/{institutionId}",
         "definition": {
           "entityName": "DataItem",
           "schema": {
@@ -57,7 +57,7 @@
           "description": "Stores generic data items for various categories. Publicly readable, admin-writable.",
           "params": [
             {
-              "name": "dataItemId",
+              "name": "institutionId",
               "description": "Unique identifier for the data item."
             }
           ]

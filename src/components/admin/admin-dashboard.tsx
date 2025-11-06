@@ -134,7 +134,7 @@ export default function AdminDashboard() {
   const dataItemsQuery = useMemoFirebase(
     () =>
       !isUserLoading && user && firestore
-        ? collection(firestore, 'dataItems')
+        ? collection(firestore, 'institutions')
         : null,
     [firestore, user, isUserLoading]
   );
@@ -412,5 +412,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-    
