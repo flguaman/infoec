@@ -13,6 +13,18 @@
       "color": "#ffd100"
     },
     {
+      "name": "Banco de Guayaquil",
+      "category": "Bancos",
+      "indicators": { "Solvencia": 10.8, "Liquidez": 30.5, "Morosidad": 4.2 },
+      "color": "#00539f"
+    },
+    {
+      "name": "Produbanco",
+      "category": "Bancos",
+      "indicators": { "Solvencia": 13.0, "Liquidez": 38.1, "Morosidad": 2.5 },
+      "color": "#d9232d"
+    },
+    {
       "name": "Universidad San Francisco de Quito",
       "category": "Universidades",
       "indicators": { "Nivel Académico": 95, "Investigación": 88, "Empleabilidad": 92 },
@@ -25,6 +37,18 @@
       "color": "#004b8d"
     },
     {
+      "name": "Pontificia Universidad Católica del Ecuador",
+      "category": "Universidades",
+      "indicators": { "Nivel Académico": 89, "Investigación": 85, "Empleabilidad": 88 },
+      "color": "#fddc00"
+    },
+    {
+      "name": "Universidad de Cuenca",
+      "category": "Universidades",
+      "indicators": { "Nivel Académico": 85, "Investigación": 82, "Empleabilidad": 80 },
+      "color": "#d9232d"
+    },
+    {
       "name": "Hospital Metropolitano",
       "category": "Hospitales",
       "indicators": { "Calidad de Atención": 9.5, "Tiempo de Espera": 20, "Tasa de Recuperación": 98 },
@@ -35,6 +59,18 @@
       "category": "Hospitales",
       "indicators": { "Calidad de Atención": 9.2, "Tiempo de Espera": 25, "Tasa de Recuperación": 97 },
       "color": "#e4002b"
+    },
+    {
+      "name": "Hospital Carlos Andrade Marín (IESS)",
+      "category": "Hospitales",
+      "indicators": { "Calidad de Atención": 8.0, "Tiempo de Espera": 60, "Tasa de Recuperación": 92 },
+      "color": "#0062a8"
+    },
+    {
+      "name": "Hospital Luis Vernaza",
+      "category": "Hospitales",
+      "indicators": { "Calidad de Atención": 8.5, "Tiempo de Espera": 45, "Tasa de Recuperación": 94 },
+      "color": "#f27d00"
     }
   ]
 }

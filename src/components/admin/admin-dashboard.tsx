@@ -216,7 +216,7 @@ export default function AdminDashboard() {
     );
   }, [filteredData]);
 
-  const isDatabaseEmpty = !allDataItems || allDataItems.length === 0;
+  const isDatabaseEmpty = !loading && (!allDataItems || allDataItems.length === 0);
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-6 md:p-8 pt-6 bg-muted/40 min-h-screen">
@@ -313,7 +313,7 @@ export default function AdminDashboard() {
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    {isDatabaseEmpty && !loading && (
+                    {isDatabaseEmpty && (
                       <Button onClick={handleSeed} disabled={isSeeding}>
                         {isSeeding ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
