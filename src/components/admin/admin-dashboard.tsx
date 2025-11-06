@@ -221,7 +221,7 @@ export default function AdminDashboard() {
       filteredData?.map((item) => ({
         name: item.name,
         color: item.color || '#8884d8',
-        ...item, // Spread the whole item for flat structure
+        ...item.indicators, // Spread the indicators object
       })) || []
     );
   }, [filteredData]);
@@ -379,12 +379,17 @@ export default function AdminDashboard() {
                                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color || '#ccc' }} />
                                 {item.name}
                             </TableCell>
-                            {(categoryIndicators[activeTab] || []).map(key => (
+                            {(categoryIndicators[activeTab] || []).map(key => {
+                                const value = item.indicators?.[key];
+                                const isTime = key.includes('tiempo');
+                                return (
                                 <TableCell key={key} className="text-right">
-                                    {item[key]?.toFixed(2) ?? 'N/A'}
-                                    {key.includes('tiempo') ? 'min' : '%'}
+                                    {typeof value === 'number'
+                                    ? `${value.toFixed(2)}${isTime ? 'min' : '%'}`
+                                    : 'N/A'}
                                 </TableCell>
-                            ))}
+                                );
+                            })}
                             <TableCell className="text-right">
                               <Button
                                 variant="ghost"
@@ -424,3 +429,5 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+    

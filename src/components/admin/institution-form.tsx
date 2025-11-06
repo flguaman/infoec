@@ -27,13 +27,23 @@ import { Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
-type FormState = Partial<Omit<DataItem, 'id'>>;
-type FormErrors = { [key: string]: string | undefined };
+// Adjusted to handle the nested 'indicators' object
+type FormState = Omit<DataItem, 'id' | 'indicators'> & {
+  indicators: { [key: string]: number };
+};
+
+type FormErrors = {
+  name?: string;
+  category?: string;
+  color?: string;
+  indicators?: { [key: string]: string };
+};
 
 const defaultInitialState: FormState = {
   name: '',
   category: 'Bancos',
-  color: '#2563eb', // default primary color
+  color: '#2563eb',
+  indicators: {},
 };
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
@@ -47,7 +57,7 @@ export function DataItemForm({
 }) {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const [formState, setFormState] = useState<FormState>({});
+  const [formState, setFormState] = useState<FormState>(defaultInitialState);
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
 
@@ -58,20 +68,31 @@ export function DataItemForm({
   useEffect(() => {
     if (dataItem) {
       setFormState({
-        ...dataItem,
+        name: dataItem.name,
+        category: dataItem.category,
         color: dataItem.color || defaultInitialState.color,
+        // Ensure indicators is always an object
+        indicators: dataItem.indicators || {}, 
       });
     } else {
+      // Initialize with default state and zeroed indicators for the default category
       const initialIndicators = (categoryIndicators['Bancos'] || []).reduce(
         (acc, key) => ({ ...acc, [key]: 0 }),
         {}
       );
-      setFormState({ ...defaultInitialState, ...initialIndicators });
+      setFormState({ ...defaultInitialState, indicators: initialIndicators });
     }
   }, [dataItem]);
 
-  const handleChange = (field: keyof FormState | string, value: string | number) => {
+  const handleChange = (field: keyof Omit<FormState, 'indicators'>, value: string) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
+  };
+
+  const handleIndicatorChange = (key: string, value: number) => {
+    setFormState((prev) => ({
+      ...prev,
+      indicators: { ...prev.indicators, [key]: value },
+    }));
   };
   
   const handleCategoryChange = (value: DataItemCategory) => {
@@ -79,39 +100,37 @@ export function DataItemForm({
       (acc, key) => ({ ...acc, [key]: 0 }),
       {}
     );
-    // Keep name and color, reset everything else
     setFormState((prev) => ({
-      name: prev.name,
-      color: prev.color,
+      ...prev,
       category: value,
-      ...newIndicators,
+      indicators: newIndicators,
     }));
   };
 
   const validate = () => {
-    const newErrors: FormErrors = {};
-    if (formState.name !== undefined) {
-      const nameValidation = dataItemSchema.name(formState.name);
-      if (nameValidation !== true) newErrors.name = nameValidation;
-    }
-    if (formState.category !== undefined) {
-      const categoryValidation = dataItemSchema.category(formState.category);
-      if (categoryValidation !== true) newErrors.category = categoryValidation;
-    }
-    if (formState.color !== undefined) {
+    const newErrors: FormErrors = { indicators: {} };
+    const nameValidation = dataItemSchema.name(formState.name);
+    if (nameValidation !== true) newErrors.name = nameValidation;
+    
+    const categoryValidation = dataItemSchema.category(formState.category);
+    if (categoryValidation !== true) newErrors.category = categoryValidation;
+    
+    if (formState.color) {
       const colorValidation = dataItemSchema.color(formState.color);
       if (colorValidation !== true) newErrors.color = colorValidation;
     }
 
     currentIndicators.forEach((key) => {
-      const value = formState[key];
+      const value = formState.indicators[key];
       if (value === undefined || dataItemSchema.indicator(value) !== true) {
-        newErrors[key] = 'Debe ser un número válido.';
+        if (newErrors.indicators) {
+            newErrors.indicators[key] = 'Debe ser un número válido.';
+        }
       }
     });
 
     setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
+    return Object.keys(newErrors).length === 1 && Object.keys(newErrors.indicators || {}).length === 0;
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -120,17 +139,8 @@ export function DataItemForm({
 
     setLoading(true);
 
-    // Construct the data to save based on the flat structure
-    const dataToSave: { [key: string]: any } = {
-        name: formState.name || '',
-        category: formState.category || 'Bancos',
-        color: formState.color || '#2563eb',
-    };
-
-    currentIndicators.forEach(key => {
-        dataToSave[key] = formState[key] || 0;
-    });
-
+    // The form state already matches the DataItem structure
+    const dataToSave = { ...formState };
 
     try {
       if (isEditing && dataItem) {
@@ -141,6 +151,7 @@ export function DataItemForm({
           description: `Los datos de ${dataItem.name} se han guardado.`,
         });
       } else {
+        // Here, we explicitly cast to match the expected type
         await addInstitutionData(firestore, dataToSave as Omit<DataItem, 'id'>);
         toast({
           title: 'Elemento creado',
@@ -217,15 +228,15 @@ export function DataItemForm({
               id={key}
               type="number"
               step="any"
-              value={formState[key] || ''}
+              value={formState.indicators[key] || ''}
               onChange={(e) =>
-                handleChange(key, parseFloat(e.target.value) || 0)
+                handleIndicatorChange(key, parseFloat(e.target.value) || 0)
               }
               className="col-span-3"
             />
-            {errors[key] && (
+            {errors.indicators?.[key] && (
               <p className="col-span-4 text-right text-sm text-destructive">
-                {errors[key]}
+                {errors.indicators[key]}
               </p>
             )}
           </div>
@@ -264,3 +275,5 @@ export function DataItemForm({
     </form>
   );
 }
+
+    
