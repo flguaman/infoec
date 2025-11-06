@@ -211,7 +211,7 @@ export default function AdminDashboard() {
       filteredData?.map((item) => ({
         name: item.name,
         color: item.color || '#8884d8',
-        ...item.indicators,
+        ...item, // Spread the whole item for flat structure
       })) || []
     );
   }, [filteredData]);
@@ -371,7 +371,7 @@ export default function AdminDashboard() {
                             </TableCell>
                             {(categoryIndicators[activeTab] || []).map(key => (
                                 <TableCell key={key} className="text-right">
-                                    {item.indicators[key]?.toFixed(2) ?? 'N/A'}
+                                    {item[key]?.toFixed(2) ?? 'N/A'}
                                     {key.includes('Tiempo') ? 'min' : '%'}
                                 </TableCell>
                             ))}

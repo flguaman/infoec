@@ -6,12 +6,14 @@ export const categoryIndicators: Record<DataItemCategory, string[]> = {
   Hospitales: ['Calidad de Atención', 'Tiempo de Espera', 'Tasa de Recuperación'],
 };
 
+// This flattens the structure. Instead of `indicators: { Solvencia: 10 }`,
+// it will be `{ Solvencia: 10 }`.
 export type DataItem = {
   id: string;
   name: string;
   category: DataItemCategory;
-  indicators: { [key: string]: number };
   color?: string;
+  [key: string]: any; // Allows for arbitrary indicator keys
 };
 
 export const dataItemSchema = {

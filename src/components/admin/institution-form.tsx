@@ -33,7 +33,6 @@ type FormErrors = { [key: string]: string | undefined };
 const defaultInitialState: FormState = {
   name: '',
   category: 'Bancos',
-  indicators: {},
   color: '#2563eb', // default primary color
 };
 
@@ -46,14 +45,14 @@ export function DataItemForm({
 }) {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const [formState, setFormState] = useState<FormState>(defaultInitialState);
+  const [formState, setFormState] = useState<FormState>({});
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
 
   const isEditing = !!dataItem;
   const currentCategory = formState.category || 'Bancos';
   const currentIndicators = categoryIndicators[currentCategory] || [];
-  
+
   useEffect(() => {
     if (dataItem) {
       setFormState({
@@ -61,35 +60,29 @@ export function DataItemForm({
         color: dataItem.color || defaultInitialState.color,
       });
     } else {
-      // When creating a new item, initialize indicators for the default category
       const initialIndicators = (categoryIndicators['Bancos'] || []).reduce(
         (acc, key) => ({ ...acc, [key]: 0 }),
         {}
       );
-      setFormState({ ...defaultInitialState, indicators: initialIndicators });
+      setFormState({ ...defaultInitialState, ...initialIndicators });
     }
   }, [dataItem]);
 
-  const handleChange = (field: keyof FormState, value: string | number) => {
+  const handleChange = (field: keyof FormState | string, value: string | number) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
   };
-
-  const handleIndicatorChange = (key: string, value: number) => {
-    setFormState((prev) => ({
-      ...prev,
-      indicators: { ...(prev.indicators || {}), [key]: value },
-    }));
-  };
-
+  
   const handleCategoryChange = (value: DataItemCategory) => {
     const newIndicators = categoryIndicators[value].reduce(
       (acc, key) => ({ ...acc, [key]: 0 }),
       {}
     );
+    // Keep name and color, reset everything else
     setFormState((prev) => ({
-      ...prev,
+      name: prev.name,
+      color: prev.color,
       category: value,
-      indicators: newIndicators,
+      ...newIndicators,
     }));
   };
 
@@ -109,7 +102,7 @@ export function DataItemForm({
     }
 
     currentIndicators.forEach((key) => {
-      const value = formState.indicators?.[key];
+      const value = formState[key];
       if (value === undefined || dataItemSchema.indicator(value) !== true) {
         newErrors[key] = 'Debe ser un número válido.';
       }
@@ -124,14 +117,20 @@ export function DataItemForm({
     if (!validate() || !firestore) return;
 
     setLoading(true);
-    try {
-      const dataToSave = {
+
+    // Construct the data to save based on the flat structure
+    const dataToSave: { [key: string]: any } = {
         name: formState.name || '',
         category: formState.category || 'Bancos',
-        indicators: formState.indicators || {},
         color: formState.color || '#2563eb',
-      };
+    };
 
+    currentIndicators.forEach(key => {
+        dataToSave[key] = formState[key] || 0;
+    });
+
+
+    try {
       if (isEditing && dataItem) {
         const itemRef = doc(firestore, 'institutions', dataItem.id);
         await updateInstitutionData(itemRef, dataToSave);
@@ -140,7 +139,7 @@ export function DataItemForm({
           description: `Los datos de ${dataItem.name} se han guardado.`,
         });
       } else {
-        await addInstitutionData(firestore, dataToSave);
+        await addInstitutionData(firestore, dataToSave as Omit<DataItem, 'id'>);
         toast({
           title: 'Elemento creado',
           description: `Se ha creado el nuevo elemento ${dataToSave.name}.`,
@@ -216,9 +215,9 @@ export function DataItemForm({
               id={key}
               type="number"
               step="any"
-              value={formState.indicators?.[key] || ''}
+              value={formState[key] || ''}
               onChange={(e) =>
-                handleIndicatorChange(key, parseFloat(e.target.value) || 0)
+                handleChange(key, parseFloat(e.target.value) || 0)
               }
               className="col-span-3"
             />

@@ -15,7 +15,8 @@ export async function seedDatabase(db: Firestore) {
   const institutionsCollection = collection(db, 'institutions');
   const batch = writeBatch(db);
   initialDataItems.forEach((item) => {
-    const docRef = doc(institutionsCollection); // Create a new doc with a random ID
+    // The item from JSON already has the flat structure
+    const docRef = doc(institutionsCollection); 
     batch.set(docRef, item);
   });
   await batch.commit();
