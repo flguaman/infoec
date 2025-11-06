@@ -1,35 +1,30 @@
 /**
- * @fileOverview Firestore Security Rules for the financial institutions app.
+ * @fileOverview Firestore Security Rules for the multi-category info app.
  *
  * Core Philosophy:
- * This ruleset allows public read access to financial institution data while restricting write access to authenticated users.
+ * This ruleset allows public read access to all data items while restricting
+ * write access to authenticated users, who are considered administrators.
  *
  * Data Structure:
- * All institution data is stored in the `/institutions/{institutionId}` collection.
- *
- * Key Security Decisions:
- * - Public read access is granted to the `/institutions` collection, assuming all data is safe for public consumption.
- * - Write access (create, update, delete) to the `/institutions` collection is restricted to authenticated users.
+ * All data is stored in the `/dataItems/{dataItemId}` collection.
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants public read access to institution data, while restricting writes to authenticated users.
-     * @path /institutions/{institutionId}
-     * @allow (get, list): Any user can read institution data.
-     * @allow (create, update, delete): Only authenticated users can modify institution data.
-     * @deny (create, update, delete): Unauthenticated users cannot modify institution data.
-     * @principle Allows public reads, restricts writes to authenticated users.
+     * @description Grants public read access to data items, while restricting writes to authenticated users.
+     * @path /dataItems/{dataItemId}
+     * @allow (get, list): Any user can read data items.
+     * @allow (create, update, delete): Only authenticated users can modify data.
      */
-    match /institutions/{institutionId} {
+    match /dataItems/{dataItemId} {
       allow get: if true;
       allow list: if true;
 
       allow create: if isSignedIn();
-      allow update: if isSignedIn() && resource != null;
-      allow delete: if isSignedIn() && resource != null;
+      allow update: if isSignedIn();
+      allow delete: if isSignedIn();
     }
 
     // Helper function to check if a user is signed in.

@@ -1,94 +1,79 @@
 'use client';
 import {
   collection,
-  doc,
-  getDocs,
   writeBatch,
   updateDoc,
   addDoc,
   DocumentReference,
   Firestore,
 } from 'firebase/firestore';
+import type { DataItem } from './types';
 
-import type { Institution } from './types';
-
-const initialInstitutions: Omit<Institution, 'id'>[] = [
+const initialDataItems: Omit<DataItem, 'id'>[] = [
+  // Banks
   {
     name: 'Banco del Pacífico',
-    type: 'Banco',
-    solvencia: 11.5,
-    liquidez: 35.2,
-    morosidad: 3.1,
-    activosTotales: 7800000000,
+    category: 'Bancos',
+    indicators: { Solvencia: 11.5, Liquidez: 35.2, Morosidad: 3.1 },
     color: '#0033a0',
   },
   {
     name: 'Banco Pichincha',
-    type: 'Banco',
-    solvencia: 12.1,
-    liquidez: 33.8,
-    morosidad: 2.8,
-    activosTotales: 13500000000,
+    category: 'Bancos',
+    indicators: { Solvencia: 12.1, Liquidez: 33.8, Morosidad: 2.8 },
     color: '#ffd100',
   },
+  // Universities
   {
-    name: 'Cooperativa JEP',
-    type: 'Cooperativa',
-    solvencia: 14.8,
-    liquidez: 40.1,
-    morosidad: 4.5,
-    activosTotales: 2900000000,
-    color: '#009640',
+    name: 'Universidad San Francisco de Quito',
+    category: 'Universidades',
+    indicators: { 'Nivel Académico': 95, Investigación: 88, Empleabilidad: 92 },
+    color: '#8c1d40',
   },
   {
-    name: 'Banco Guayaquil',
-    type: 'Banco',
-    solvencia: 10.9,
-    liquidez: 30.5,
-    morosidad: 3.5,
-    activosTotales: 9200000000,
+    name: 'Escuela Politécnica Nacional',
+    category: 'Universidades',
+    indicators: { 'Nivel Académico': 92, Investigación: 91, Empleabilidad: 85 },
+    color: '#004b8d',
+  },
+  // Hospitals
+  {
+    name: 'Hospital Metropolitano',
+    category: 'Hospitales',
+    indicators: { 'Calidad de Atención': 9.5, 'Tiempo de Espera': 20, 'Tasa de Recuperación': 98 },
+    color: '#00a99d',
+  },
+  {
+    name: 'Hospital de los Valles',
+    category: 'Hospitales',
+    indicators: { 'Calidad de Atención': 9.2, 'Tiempo de Espera': 25, 'Tasa de Recuperación': 97 },
     color: '#e4002b',
-  },
-  {
-    name: 'Cooperativa Alianza del Valle',
-    type: 'Cooperativa',
-    solvencia: 13.5,
-    liquidez: 38.7,
-    morosidad: 5.2,
-    activosTotales: 1500000000,
-    color: '#f37021',
   },
 ];
 
 export async function seedDatabase(db: Firestore) {
-  const institutionsCollection = collection(db, 'institutions');
-  const snapshot = await getDocs(institutionsCollection);
-  if (snapshot.empty) {
-    const batch = writeBatch(db);
-    initialInstitutions.forEach((institution) => {
-      const docRef = doc(institutionsCollection);
-      batch.set(docRef, institution);
-    });
-    await batch.commit();
-    console.log('Database seeded successfully!');
-    return true;
-  } else {
-    console.log('Database already contains data, skipping seed.');
-    return false;
-  }
+  const dataItemsCollection = collection(db, 'dataItems');
+  const batch = writeBatch(db);
+  initialDataItems.forEach((item) => {
+    const docRef = doc(dataItemsCollection); // Create a new doc with a random ID
+    batch.set(docRef, item);
+  });
+  await batch.commit();
+  console.log('Database seeded successfully with multi-category data!');
+  return true;
 }
 
 export async function addInstitutionData(
   db: Firestore,
-  data: Omit<Institution, 'id'>
+  data: Omit<DataItem, 'id'>
 ) {
-  const institutionsCollection = collection(db, 'institutions');
-  await addDoc(institutionsCollection, data);
+  const itemsCollection = collection(db, 'dataItems');
+  await addDoc(itemsCollection, data);
 }
 
 export async function updateInstitutionData(
-  institutionDocRef: DocumentReference,
-  data: Partial<Omit<Institution, 'id'>>
+  itemDocRef: DocumentReference,
+  data: Partial<Omit<DataItem, 'id'>>
 ) {
-  await updateDoc(institutionDocRef, data);
+  await updateDoc(itemDocRef, data);
 }

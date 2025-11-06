@@ -1,11 +1,11 @@
 'use client';
-import { useState, useMemo } from 'react';
+import React, { useState, useMemo } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { signOut } from 'firebase/auth';
-import { useAuth } from '@/firebase';
-import { useCollection, useMemoFirebase } from '@/firebase';
-import type { Institution } from '@/lib/types';
+import { useAuth, useFirestore, useUser, useMemoFirebase } from '@/firebase';
+import { useCollection } from '@/firebase';
+import type { DataItem, DataItemCategory } from '@/lib/types';
 import { Button } from '@/components/ui/button';
 import {
   Table,
@@ -16,7 +16,7 @@ import {
   TableRow,
 } from '@/components/ui/table';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
-import { InstitutionForm } from './institution-form';
+import { DataItemForm } from './institution-form';
 import { useToast } from '@/hooks/use-toast';
 import { seedDatabase } from '@/lib/firestore-service';
 import {
@@ -25,10 +25,12 @@ import {
   Pencil,
   Database,
   Building,
-  Landmark,
-  ShieldCheck,
+  School,
+  Hospital,
   PlusCircle,
   Home,
+  ShieldCheck,
+  BarChart,
 } from 'lucide-react';
 import Logo from '../shared/logo';
 import {
@@ -39,24 +41,35 @@ import {
   CardDescription,
 } from '@/components/ui/card';
 import {
-  ChartConfig,
   ChartContainer,
   ChartTooltip,
   ChartTooltipContent,
+  ChartConfig,
 } from '@/components/ui/chart';
 import {
-  BarChart,
-  Bar,
+  BarChart as RechartsBarChart,
+  Bar as RechartsBar,
   XAxis,
   YAxis,
   CartesianGrid,
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { collection, query } from 'firebase/firestore';
-import { useFirestore } from '@/firebase';
+import { collection, query, where } from 'firebase/firestore';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { categoryIndicators } from '@/lib/types';
 
-const CustomBarChart = ({ data, dataKey, label, unit }: { data: any[], dataKey: string, label: string, unit:string }) => {
+const CustomBarChart = ({
+  data,
+  dataKey,
+  label,
+  unit = '',
+}: {
+  data: any[];
+  dataKey: string;
+  label: string;
+  unit?: string;
+}) => {
   const chartConfig: ChartConfig = {
     [dataKey]: {
       label: label,
@@ -67,65 +80,76 @@ const CustomBarChart = ({ data, dataKey, label, unit }: { data: any[], dataKey: 
     <Card>
       <CardHeader>
         <CardTitle>Comparativa de {label}</CardTitle>
-        <CardDescription>
-          Visualización del indicador de {label.toLowerCase()} de cada institución.
-        </CardDescription>
       </CardHeader>
       <CardContent className="pl-2">
         {!data || data.length === 0 ? (
-           <div className="flex items-center justify-center h-[350px]">
-              <Loader2 className="mr-2 h-8 w-8 animate-spin" />
-              <span>Cargando gráfico...</span>
-            </div>
+          <div className="flex items-center justify-center h-[200px]">
+            <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+            <span>Cargando gráfico...</span>
+          </div>
         ) : (
-        <ChartContainer config={chartConfig} className="h-[350px] w-full">
-          <ResponsiveContainer>
-            <BarChart data={data} margin={{ top: 20, right: 20, bottom: 5, left: 0 }}>
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="name"
-                tickLine={false}
-                tickMargin={10}
-                axisLine={false}
-                tickFormatter={(value) => value.slice(0, 3)}
-              />
-              <YAxis unit={unit} />
-              <ChartTooltip
-                cursor={false}
-                content={<ChartTooltipContent indicator="dot" />}
-              />
-              <Bar dataKey={dataKey} radius={8}>
-                {data.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={entry.color || '#8884d8'} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </ChartContainer>
+          <ChartContainer config={chartConfig} className="h-[200px] w-full">
+            <ResponsiveContainer>
+              <RechartsBarChart
+                data={data}
+                margin={{ top: 20, right: 20, bottom: 5, left: 0 }}
+              >
+                <CartesianGrid vertical={false} />
+                <XAxis
+                  dataKey="name"
+                  tickLine={false}
+                  tickMargin={10}
+                  axisLine={false}
+                  tickFormatter={(value) => value.slice(0, 3)}
+                />
+                <YAxis unit={unit} />
+                <ChartTooltip
+                  cursor={false}
+                  content={<ChartTooltipContent indicator="dot" />}
+                />
+                <RechartsBar dataKey={dataKey} radius={8}>
+                  {data.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={entry.color || '#8884d8'} />
+                  ))}
+                </RechartsBar>
+              </RechartsBarChart>
+            </ResponsiveContainer>
+          </ChartContainer>
         )}
       </CardContent>
     </Card>
   );
 };
 
-
 export default function AdminDashboard() {
   const router = useRouter();
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
+  const { user } = useUser();
 
-  const institutionsQuery = useMemoFirebase(
-    () => (firestore ? query(collection(firestore, 'institutions')) : null),
-    [firestore]
+  const [activeTab, setActiveTab] =
+    useState<DataItemCategory>('Bancos');
+
+  const dataItemsQuery = useMemoFirebase(
+    () =>
+      user && firestore
+        ? query(collection(firestore, 'dataItems'))
+        : null,
+    [firestore, user]
   );
-  const { data: institutions, isLoading: loading } =
-    useCollection<Institution>(institutionsQuery);
+  
+  const { data: allDataItems, isLoading: loading } = useCollection<DataItem>(dataItemsQuery);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [selectedInstitution, setSelectedInstitution] =
-    useState<Institution | null>(null);
+  const [selectedDataItem, setSelectedDataItem] = useState<DataItem | null>(
+    null
+  );
   const [isSeeding, setIsSeeding] = useState(false);
+
+  const filteredData = useMemo(() => {
+    return allDataItems?.filter(item => item.category === activeTab) || [];
+  }, [allDataItems, activeTab]);
 
   const handleLogout = async () => {
     if (auth) {
@@ -134,19 +158,19 @@ export default function AdminDashboard() {
     }
   };
 
-  const handleEdit = (institution: Institution) => {
-    setSelectedInstitution(institution);
+  const handleEdit = (item: DataItem) => {
+    setSelectedDataItem(item);
     setIsFormOpen(true);
   };
-  
+
   const handleAddNew = () => {
-    setSelectedInstitution(null);
+    setSelectedDataItem(null);
     setIsFormOpen(true);
   };
 
   const handleCloseForm = () => {
     setIsFormOpen(false);
-    setSelectedInstitution(null);
+    setSelectedDataItem(null);
   };
 
   const handleSeed = async () => {
@@ -154,17 +178,11 @@ export default function AdminDashboard() {
     setIsSeeding(true);
     try {
       const seeded = await seedDatabase(firestore);
-      if (seeded) {
-        toast({
-          title: 'Base de datos poblada',
-          description: 'Se han añadido 5 instituciones de ejemplo.',
-        });
-      } else {
-        toast({
-          title: 'Base de datos ya poblada',
-          description: 'No se realizaron cambios.',
-        });
-      }
+      toast({
+        title: 'Base de datos poblada',
+        description:
+          'Se han añadido datos de ejemplo para todas las categorías.',
+      });
     } catch (error: any) {
       toast({
         title: 'Error al poblar la base de datos',
@@ -177,53 +195,26 @@ export default function AdminDashboard() {
   };
 
   const stats = useMemo(() => {
-    if (!institutions) {
-      return {
-        total: 0,
-        banks: 0,
-        cooperatives: 0,
-        avgSolvency: 0,
-      };
+    if (!allDataItems) {
+      return { total: 0, banks: 0, universities: 0, hospitals: 0 };
     }
-    const banks = institutions.filter((inst) => inst.type === 'Banco').length;
-    const cooperatives = institutions.filter(
-      (inst) => inst.type === 'Cooperativa'
-    ).length;
-    const totalSolvency = institutions.reduce(
-      (acc, inst) => acc + inst.solvencia,
-      0
-    );
-    const avgSolvency =
-      institutions.length > 0 ? totalSolvency / institutions.length : 0;
-
     return {
-      total: institutions.length,
-      banks,
-      cooperatives,
-      avgSolvency,
+      total: allDataItems.length,
+      banks: allDataItems.filter((d) => d.category === 'Bancos').length,
+      universities: allDataItems.filter((d) => d.category === 'Universidades').length,
+      hospitals: allDataItems.filter((d) => d.category === 'Hospitales').length,
     };
-  }, [institutions]);
-
+  }, [allDataItems]);
+  
   const chartData = useMemo(() => {
     return (
-      institutions?.map((inst) => ({
-        name: inst.name,
-        solvencia: inst.solvencia,
-        liquidez: inst.liquidez,
-        morosidad: inst.morosidad,
-        color: inst.color || (inst.type === 'Banco' ? 'var(--color-bancos)' : 'var(--color-cooperativas)'),
+      filteredData?.map((item) => ({
+        name: item.name,
+        color: item.color || '#8884d8',
+        ...item.indicators,
       })) || []
     );
-  }, [institutions]);
-  
-  const formatCurrency = (value: number) => {
-    return new Intl.NumberFormat('en-US', {
-      style: 'currency',
-      currency: 'USD',
-      notation: 'compact',
-      compactDisplay: 'short',
-    }).format(value);
-  }
+  }, [filteredData]);
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-6 md:p-8 pt-6 bg-muted/40 min-h-screen">
@@ -234,7 +225,7 @@ export default function AdminDashboard() {
             Panel de Administración
           </h1>
           <p className="text-muted-foreground">
-            Visualice y gestione los indicadores de las instituciones financieras.
+            Gestione los indicadores de las diferentes categorías.
           </p>
         </div>
         <div className="flex items-center gap-2 mt-4 sm:mt-0">
@@ -255,9 +246,9 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">
-              Instituciones Totales
+              Total de Elementos
             </CardTitle>
-            <Building className="h-4 w-4 text-muted-foreground" />
+            <BarChart className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.total}</div>
@@ -266,7 +257,7 @@ export default function AdminDashboard() {
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
             <CardTitle className="text-sm font-medium">Bancos</CardTitle>
-            <Landmark className="h-4 w-4 text-muted-foreground" />
+            <Building className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">{stats.banks}</div>
@@ -274,122 +265,133 @@ export default function AdminDashboard() {
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Cooperativas</CardTitle>
-            <Landmark className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Universidades</CardTitle>
+            <School className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.cooperatives}</div>
+            <div className="text-2xl font-bold">{stats.universities}</div>
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">
-              Solvencia Promedio
-            </CardTitle>
-            <ShieldCheck className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Hospitales</CardTitle>
+            <Hospital className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">
-              {stats.avgSolvency.toFixed(2)}%
-            </div>
+            <div className="text-2xl font-bold">{stats.hospitals}</div>
           </CardContent>
         </Card>
       </main>
 
-      <div className="grid gap-4 grid-cols-1 lg:grid-cols-7">
-        <div className="lg:col-span-3 space-y-4">
-           <CustomBarChart data={chartData} dataKey="solvencia" label="Solvencia" unit="%" />
-           <CustomBarChart data={chartData} dataKey="liquidez" label="Liquidez" unit="%" />
-           <CustomBarChart data={chartData} dataKey="morosidad" label="Morosidad" unit="%" />
-        </div>
-        <Card className="lg:col-span-4">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <div>
-              <CardTitle>Lista de Instituciones</CardTitle>
-              <CardDescription>
-                Cree o edite los indicadores financieros.
-              </CardDescription>
+       <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as DataItemCategory)} className="w-full">
+        <TabsList>
+          <TabsTrigger value="Bancos">Bancos</TabsTrigger>
+          <TabsTrigger value="Universidades">Universidades</TabsTrigger>
+          <TabsTrigger value="Hospitales">Hospitales</TabsTrigger>
+        </TabsList>
+        <TabsContent value={activeTab}>
+            <div className="grid gap-4 grid-cols-1 lg:grid-cols-7 mt-4">
+              <div className="lg:col-span-3 space-y-4">
+                {(categoryIndicators[activeTab] || []).map(indicator => (
+                  <CustomBarChart
+                    key={indicator}
+                    data={chartData}
+                    dataKey={indicator}
+                    label={indicator}
+                    unit={indicator.includes('Tiempo') ? 'min' : '%'}
+                  />
+                ))}
+              </div>
+              <Card className="lg:col-span-4">
+                <CardHeader className="flex flex-row items-center justify-between">
+                  <div>
+                    <CardTitle>Lista de {activeTab}</CardTitle>
+                    <CardDescription>
+                      Cree o edite los indicadores.
+                    </CardDescription>
+                  </div>
+                  <div className="flex gap-2">
+                    {(!allDataItems || allDataItems.length === 0) && !loading && (
+                      <Button onClick={handleSeed} disabled={isSeeding}>
+                        {isSeeding ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : (
+                          <Database className="mr-2 h-4 w-4" />
+                        )}
+                        Poblar Datos
+                      </Button>
+                    )}
+                    <Button onClick={handleAddNew}>
+                      <PlusCircle className="mr-2 h-4 w-4" />
+                      Nuevo Elemento
+                    </Button>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Nombre</TableHead>
+                        {(categoryIndicators[activeTab] || []).map(key => (
+                            <TableHead key={key} className="text-right">{key}</TableHead>
+                        ))}
+                        <TableHead className="text-right">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {loading ? (
+                        <TableRow>
+                          <TableCell colSpan={categoryIndicators[activeTab].length + 2} className="text-center h-24">
+                            <div className="flex items-center justify-center">
+                              <Loader2 className="mr-2 h-6 w-6 animate-spin" />
+                              Cargando datos...
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ) : filteredData.length > 0 ? (
+                        filteredData.map((item) => (
+                          <TableRow key={item.id}>
+                            <TableCell className="font-medium flex items-center gap-2">
+                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color || '#ccc' }} />
+                                {item.name}
+                            </TableCell>
+                            {(categoryIndicators[activeTab] || []).map(key => (
+                                <TableCell key={key} className="text-right">
+                                    {item.indicators[key]?.toFixed(2) ?? 'N/A'}
+                                    {key.includes('Tiempo') ? 'min' : '%'}
+                                </TableCell>
+                            ))}
+                            <TableCell className="text-right">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => handleEdit(item)}
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      ) : (
+                        <TableRow>
+                          <TableCell colSpan={categoryIndicators[activeTab].length + 2} className="text-center h-24">
+                            No hay datos para mostrar en esta categoría.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                    </TableBody>
+                  </Table>
+                </CardContent>
+              </Card>
             </div>
-            <div className="flex gap-2">
-            {(!institutions || institutions.length === 0) && !loading && (
-              <Button onClick={handleSeed} disabled={isSeeding}>
-                {isSeeding ? (
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                ) : (
-                  <Database className="mr-2 h-4 w-4" />
-                )}
-                Poblar Datos
-              </Button>
-            )}
-            <Button onClick={handleAddNew}>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Nueva Institución
-            </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Nombre</TableHead>
-                  <TableHead>Tipo</TableHead>
-                  <TableHead className="text-right">Solvencia</TableHead>
-                  <TableHead className="text-right">Activos Totales</TableHead>
-                  <TableHead className="text-right">Acciones</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {loading ? (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center h-24">
-                      <div className="flex items-center justify-center">
-                        <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-                        Cargando datos...
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ) : institutions && institutions.length > 0 ? (
-                  institutions.map((inst) => (
-                    <TableRow key={inst.id}>
-                      <TableCell className="font-medium flex items-center gap-2">
-                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: inst.color || '#ccc' }} />
-                        {inst.name}
-                      </TableCell>
-                      <TableCell>{inst.type}</TableCell>
-                      <TableCell className="text-right">
-                        {inst.solvencia.toFixed(2)}%
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {formatCurrency(inst.activosTotales)}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          onClick={() => handleEdit(inst)}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
-                    </TableRow>
-                  ))
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={5} className="text-center h-24">
-                      No hay instituciones para mostrar.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </CardContent>
-        </Card>
-      </div>
+        </TabsContent>
+      </Tabs>
+      
 
       <Dialog open={isFormOpen} onOpenChange={setIsFormOpen}>
         <DialogContent>
-          <InstitutionForm
-            institution={selectedInstitution}
+          <DataItemForm
+            dataItem={selectedDataItem}
             onClose={handleCloseForm}
           />
         </DialogContent>

@@ -1,20 +1,22 @@
-export type Institution = {
+export type DataItemCategory = 'Bancos' | 'Universidades' | 'Hospitales';
+
+export const categoryIndicators: Record<DataItemCategory, string[]> = {
+  Bancos: ['Solvencia', 'Liquidez', 'Morosidad'],
+  Universidades: ['Nivel Académico', 'Investigación', 'Empleabilidad'],
+  Hospitales: ['Calidad de Atención', 'Tiempo de Espera', 'Tasa de Recuperación'],
+};
+
+export type DataItem = {
   id: string;
   name: string;
-  type: 'Banco' | 'Cooperativa';
-  solvencia: number;
-  liquidez: number;
-  morosidad: number;
-  activosTotales: number;
+  category: DataItemCategory;
+  indicators: { [key: string]: number };
   color?: string;
 };
 
-export const institutionSchema = {
+export const dataItemSchema = {
   name: (v: string) => v.length > 2 || 'El nombre debe tener al menos 3 caracteres.',
-  type: (v: string) => ['Banco', 'Cooperativa'].includes(v) || 'Tipo inválido.',
-  solvencia: (v: number) => (v >= 0 && v <= 100) || 'La solvencia debe estar entre 0 y 100.',
-  liquidez: (v: number) => (v >= 0 && v <= 100) || 'La liquidez debe estar entre 0 y 100.',
-  morosidad: (v: number) => (v >= 0 && v <= 100) || 'La morosidad debe estar entre 0 y 100.',
-  activosTotales: (v: number) => v > 0 || 'Los activos totales deben ser un número positivo.',
+  category: (v: string) => ['Bancos', 'Universidades', 'Hospitales'].includes(v) || 'Categoría inválida.',
+  indicator: (v: number) => typeof v === 'number' || 'El indicador debe ser un número.',
   color: (v: string) => /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(v) || 'Formato de color inválido. Use #RRGGBB.',
 };
