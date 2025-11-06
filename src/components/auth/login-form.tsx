@@ -6,7 +6,7 @@ import {
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
 } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/firebase';
 import { Button } from '@/components/ui/button';
 import {
   Card,
@@ -24,6 +24,7 @@ import { Info } from 'lucide-react';
 export default function LoginForm() {
   const router = useRouter();
   const { toast } = useToast();
+  const auth = useAuth();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
@@ -33,6 +34,7 @@ export default function LoginForm() {
     e.preventDefault();
     setLoading(true);
     setError(null);
+
     try {
       await signInWithEmailAndPassword(auth, email, password);
       toast({
@@ -41,7 +43,6 @@ export default function LoginForm() {
       });
       router.push('/admin');
     } catch (signInError: any) {
-      // If the user doesn't exist, try creating it with the demo credentials
       if (
         (signInError.code === 'auth/user-not-found' ||
           signInError.code === 'auth/invalid-credential') &&
@@ -50,17 +51,13 @@ export default function LoginForm() {
       ) {
         try {
           await createUserWithEmailAndPassword(auth, email, password);
-          // After creating, try signing in again
-          await signInWithEmailAndPassword(auth, email, password);
           toast({
-            title: 'Cuenta de demo creada',
+            title: 'Cuenta de demo creada y sesión iniciada',
             description: 'Redirigiendo al panel de administración...',
           });
           router.push('/admin');
         } catch (signUpError: any) {
-          setError(
-            'Error al crear la cuenta de demo. Verifique la consola.'
-          );
+          setError('Error al crear la cuenta de demo. Verifique la consola.');
           console.error(signUpError);
         }
       } else {

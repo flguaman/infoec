@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import Logo from './logo';
 import { LogIn, Moon, Sun } from 'lucide-react';
 import { onAuthStateChanged, User } from 'firebase/auth';
-import { auth } from '@/lib/firebase';
+import { useAuth } from '@/firebase';
 import { useState, useEffect } from 'react';
 import { useTheme } from "next-themes"
 import {
@@ -17,14 +17,15 @@ import {
 
 export default function SiteHeader() {
   const [user, setUser] = useState<User | null>(null);
-  const { setTheme } = useTheme()
+  const { setTheme } = useTheme();
+  const auth = useAuth();
 
   useEffect(() => {
     const unsubscribe = onAuthStateChanged(auth, (currentUser) => {
       setUser(currentUser);
     });
     return () => unsubscribe();
-  }, []);
+  }, [auth]);
 
   return (
     <header className="sticky top-0 z-50 w-full border-b border-border/40 bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
