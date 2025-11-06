@@ -4,6 +4,7 @@
  * Core Philosophy:
  * This ruleset allows public read access to all data items while restricting
  * write access to authenticated users, who are considered administrators.
+ * This is a common pattern for apps with public content managed by admins.
  *
  * Data Structure:
  * All data is stored in the `/dataItems/{dataItemId}` collection.
@@ -13,18 +14,14 @@ service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants public read access to data items, while restricting writes to authenticated users.
+     * @description Grants public read access, authenticated write access.
      * @path /dataItems/{dataItemId}
-     * @allow (get, list): Any user can read data items.
-     * @allow (create, update, delete): Only authenticated users can modify data.
+     * @allow (get, list): Any user (authenticated or not) can read.
+     * @allow (create, update, delete): Only signed-in users (admins) can write.
      */
     match /dataItems/{dataItemId} {
-      allow get: if true;
-      allow list: if true;
-
-      allow create: if isSignedIn();
-      allow update: if isSignedIn();
-      allow delete: if isSignedIn();
+      allow read: if true;
+      allow write: if isSignedIn();
     }
 
     // Helper function to check if a user is signed in.
@@ -33,3 +30,5 @@ service cloud.firestore {
     }
   }
 }
+
+    

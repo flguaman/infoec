@@ -55,7 +55,7 @@ import {
   ResponsiveContainer,
   Cell,
 } from 'recharts';
-import { collection, query, where } from 'firebase/firestore';
+import { collection } from 'firebase/firestore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { categoryIndicators } from '@/lib/types';
 
@@ -126,20 +126,20 @@ export default function AdminDashboard() {
   const { toast } = useToast();
   const auth = useAuth();
   const firestore = useFirestore();
-  const { user } = useUser();
+  const { user, isUserLoading } = useUser();
 
   const [activeTab, setActiveTab] =
     useState<DataItemCategory>('Bancos');
 
   const dataItemsQuery = useMemoFirebase(
     () =>
-      user && firestore
-        ? query(collection(firestore, 'dataItems'))
+      !isUserLoading && user && firestore
+        ? collection(firestore, 'dataItems')
         : null,
-    [firestore, user]
+    [firestore, user, isUserLoading]
   );
   
-  const { data: allDataItems, isLoading: loading } = useCollection<DataItem>(dataItemsQuery);
+  const { data: allDataItems, isLoading: loading, error } = useCollection<DataItem>(dataItemsQuery);
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDataItem, setSelectedDataItem] = useState<DataItem | null>(
@@ -177,7 +177,7 @@ export default function AdminDashboard() {
     if (!firestore) return;
     setIsSeeding(true);
     try {
-      const seeded = await seedDatabase(firestore);
+      await seedDatabase(firestore);
       toast({
         title: 'Base de datos poblada',
         description:
@@ -328,6 +328,18 @@ export default function AdminDashboard() {
                   </div>
                 </CardHeader>
                 <CardContent>
+                   {error ? (
+                    <div className="flex flex-col items-center justify-center h-full text-center p-8">
+                       <ShieldCheck className="h-16 w-16 text-destructive mb-4" />
+                       <h3 className="text-xl font-semibold text-destructive">Error de Permisos</h3>
+                       <p className="text-muted-foreground mt-2">
+                         No se pudieron cargar los datos de Firestore.
+                       </p>
+                       <p className="text-xs text-muted-foreground mt-1">
+                         Es probable que las reglas de seguridad desplegadas en tu proyecto de Firebase no permitan la lectura.
+                       </p>
+                    </div>
+                  ) : (
                   <Table>
                     <TableHeader>
                       <TableRow>
@@ -375,12 +387,13 @@ export default function AdminDashboard() {
                       ) : (
                         <TableRow>
                           <TableCell colSpan={categoryIndicators[activeTab].length + 2} className="text-center h-24">
-                            No hay datos para mostrar en esta categoría.
+                             No hay datos para mostrar en esta categoría.
                           </TableCell>
                         </TableRow>
                       )}
                     </TableBody>
                   </Table>
+                  )}
                 </CardContent>
               </Card>
             </div>
@@ -399,3 +412,5 @@ export default function AdminDashboard() {
     </div>
   );
 }
+
+    
