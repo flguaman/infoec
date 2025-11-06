@@ -59,6 +59,8 @@ import { collection } from 'firebase/firestore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { categoryIndicators } from '@/lib/types';
 
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 const CustomBarChart = ({
   data,
   dataKey,
@@ -146,9 +148,17 @@ export default function AdminDashboard() {
     null
   );
   const [isSeeding, setIsSeeding] = useState(false);
+  
+  const getCategory = (item: DataItem) => {
+    // Handle legacy 'Cooperativa' type
+    if ((item.type as string)?.toLowerCase() === 'cooperativa') {
+      return 'Bancos';
+    }
+    return item.category;
+  }
 
   const filteredData = useMemo(() => {
-    return allDataItems?.filter(item => item.category === activeTab) || [];
+    return allDataItems?.filter(item => getCategory(item) === activeTab) || [];
   }, [allDataItems, activeTab]);
 
   const handleLogout = async () => {
@@ -200,9 +210,9 @@ export default function AdminDashboard() {
     }
     return {
       total: allDataItems.length,
-      banks: allDataItems.filter((d) => d.category === 'Bancos').length,
-      universities: allDataItems.filter((d) => d.category === 'Universidades').length,
-      hospitals: allDataItems.filter((d) => d.category === 'Hospitales').length,
+      banks: allDataItems.filter((d) => getCategory(d) === 'Bancos').length,
+      universities: allDataItems.filter((d) => getCategory(d) === 'Universidades').length,
+      hospitals: allDataItems.filter((d) => getCategory(d) === 'Hospitales').length,
     };
   }, [allDataItems]);
   
@@ -299,8 +309,8 @@ export default function AdminDashboard() {
                     key={indicator}
                     data={chartData}
                     dataKey={indicator}
-                    label={indicator}
-                    unit={indicator.includes('Tiempo') ? 'min' : '%'}
+                    label={capitalize(indicator)}
+                    unit={indicator.includes('tiempo') ? 'min' : '%'}
                   />
                 ))}
               </div>
@@ -347,7 +357,7 @@ export default function AdminDashboard() {
                       <TableRow>
                         <TableHead>Nombre</TableHead>
                         {(categoryIndicators[activeTab] || []).map(key => (
-                            <TableHead key={key} className="text-right">{key}</TableHead>
+                            <TableHead key={key} className="text-right">{capitalize(key)}</TableHead>
                         ))}
                         <TableHead className="text-right">Acciones</TableHead>
                       </TableRow>
@@ -372,7 +382,7 @@ export default function AdminDashboard() {
                             {(categoryIndicators[activeTab] || []).map(key => (
                                 <TableCell key={key} className="text-right">
                                     {item[key]?.toFixed(2) ?? 'N/A'}
-                                    {key.includes('Tiempo') ? 'min' : '%'}
+                                    {key.includes('tiempo') ? 'min' : '%'}
                                 </TableCell>
                             ))}
                             <TableCell className="text-right">

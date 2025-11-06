@@ -36,6 +36,8 @@ const defaultInitialState: FormState = {
   color: '#2563eb', // default primary color
 };
 
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
+
 export function DataItemForm({
   dataItem,
   onClose,
@@ -209,7 +211,7 @@ export function DataItemForm({
         {currentIndicators.map((key) => (
           <div key={key} className="grid grid-cols-4 items-center gap-4">
             <Label htmlFor={key} className="text-right capitalize">
-              {key}
+              {capitalize(key)}
             </Label>
             <Input
               id={key}

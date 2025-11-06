@@ -1,17 +1,18 @@
 export type DataItemCategory = 'Bancos' | 'Universidades' | 'Hospitales';
 
+// Standardized to lowercase to match Firestore field names
 export const categoryIndicators: Record<DataItemCategory, string[]> = {
-  Bancos: ['Solvencia', 'Liquidez', 'Morosidad'],
-  Universidades: ['Nivel Académico', 'Investigación', 'Empleabilidad'],
-  Hospitales: ['Calidad de Atención', 'Tiempo de Espera', 'Tasa de Recuperación'],
+  Bancos: ['solvencia', 'liquidez', 'morosidad'],
+  Universidades: ['nivel academico', 'investigacion', 'empleabilidad'],
+  Hospitales: ['calidad de atencion', 'tiempo de espera', 'tasa de recuperacion'],
 };
 
-// This flattens the structure. Instead of `indicators: { Solvencia: 10 }`,
-// it will be `{ Solvencia: 10 }`.
+// This flattens the structure.
 export type DataItem = {
   id: string;
   name: string;
   category: DataItemCategory;
+  type?: string; // To handle legacy "Cooperativa" type
   color?: string;
   [key: string]: any; // Allows for arbitrary indicator keys
 };
