@@ -216,6 +216,8 @@ export default function AdminDashboard() {
     );
   }, [filteredData]);
 
+  const isDatabaseEmpty = !allDataItems || allDataItems.length === 0;
+
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-6 md:p-8 pt-6 bg-muted/40 min-h-screen">
       <header className="flex flex-col sm:flex-row items-start sm:items-center justify-between mb-4">
@@ -307,11 +309,11 @@ export default function AdminDashboard() {
                   <div>
                     <CardTitle>Lista de {activeTab}</CardTitle>
                     <CardDescription>
-                      Cree o edite los indicadores.
+                      Cree, edite o pueble la base de datos con datos de ejemplo.
                     </CardDescription>
                   </div>
                   <div className="flex gap-2">
-                    {(!allDataItems || allDataItems.length === 0) && !loading && (
+                    {isDatabaseEmpty && !loading && (
                       <Button onClick={handleSeed} disabled={isSeeding}>
                         {isSeeding ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
