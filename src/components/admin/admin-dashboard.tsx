@@ -40,24 +40,10 @@ import {
   CardTitle,
   CardDescription,
 } from '@/components/ui/card';
-import {
-  ChartContainer,
-  ChartTooltip,
-  ChartTooltipContent,
-  ChartConfig,
-} from '@/components/ui/chart';
-import {
-  BarChart as RechartsBarChart,
-  Bar as RechartsBar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  ResponsiveContainer,
-  Cell,
-} from 'recharts';
 import { collection } from 'firebase/firestore';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { categoryIndicators } from '@/lib/types';
+import CustomBarChart from '../shared/custom-bar-chart';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
@@ -65,68 +51,6 @@ const categoryToCollectionMap: Record<DataItemCategory, string> = {
     Bancos: 'institutions',
     Universidades: 'universidades',
     Hospitales: 'hospitales',
-};
-
-const CustomBarChart = ({
-  data,
-  dataKey,
-  label,
-  unit = '',
-}: {
-  data: any[];
-  dataKey: string;
-  label: string;
-  unit?: string;
-}) => {
-  const chartConfig: ChartConfig = {
-    [dataKey]: {
-      label: label,
-    },
-  };
-
-  return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Comparativa de {label}</CardTitle>
-      </CardHeader>
-      <CardContent className="pl-2">
-        {!data || data.length === 0 ? (
-          <div className="flex items-center justify-center h-[200px]">
-            <Loader2 className="mr-2 h-6 w-6 animate-spin" />
-            <span>Cargando gráfico...</span>
-          </div>
-        ) : (
-          <ChartContainer config={chartConfig} className="h-[200px] w-full">
-            <ResponsiveContainer>
-              <RechartsBarChart
-                data={data}
-                margin={{ top: 20, right: 20, bottom: 5, left: 0 }}
-              >
-                <CartesianGrid vertical={false} />
-                <XAxis
-                  dataKey="name"
-                  tickLine={false}
-                  tickMargin={10}
-                  axisLine={false}
-                  tickFormatter={(value) => value.slice(0, 3)}
-                />
-                <YAxis unit={unit} />
-                <ChartTooltip
-                  cursor={false}
-                  content={<ChartTooltipContent indicator="dot" />}
-                />
-                <RechartsBar dataKey={dataKey} radius={8}>
-                  {data.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color || '#8884d8'} />
-                  ))}
-                </RechartsBar>
-              </RechartsBarChart>
-            </ResponsiveContainer>
-          </ChartContainer>
-        )}
-      </CardContent>
-    </Card>
-  );
 };
 
 export default function AdminDashboard() {
@@ -151,7 +75,7 @@ export default function AdminDashboard() {
   
   const { data: currentData, isLoading: loading, error } = useCollection<DataItem>(dataItemsQuery);
   const { data: allInstitutions } = useCollection<DataItem>(useMemoFirebase(() => firestore ? collection(firestore, 'institutions') : null, [firestore]));
-  const { data: allUniversities } = useCollection<DataItem>(useMemoFirebase(() => firestore ? collection(firestore, 'universidades') : null, [firestore]));
+  const { data: allUniversidades } = useCollection<DataItem>(useMemoFirebase(() => firestore ? collection(firestore, 'universidades') : null, [firestore]));
   const { data: allHospitals } = useCollection<DataItem>(useMemoFirebase(() => firestore ? collection(firestore, 'hospitales') : null, [firestore]));
 
 
@@ -218,7 +142,7 @@ export default function AdminDashboard() {
       currentData?.map((item) => ({
         name: item.name,
         color: item.color || '#8884d8',
-        ...item, // Spread the indicators
+        ...item,
       })) || []
     );
   }, [currentData]);
@@ -306,7 +230,8 @@ export default function AdminDashboard() {
                     key={indicator}
                     data={chartData}
                     dataKey={indicator}
-                    label={capitalize(indicator)}
+                    title={`Comparativa de ${capitalize(indicator)}`}
+                    isLoading={loading}
                     unit={indicator.includes('tiempo') ? 'min' : '%'}
                   />
                 ))}
