@@ -149,12 +149,17 @@ export default function AdminDashboard() {
   );
   const [isSeeding, setIsSeeding] = useState(false);
   
-  const getCategory = (item: DataItem) => {
-    // Handle legacy 'Cooperativa' type
-    if ((item.type as string)?.toLowerCase() === 'cooperativa') {
+  const getCategory = (item: DataItem): DataItemCategory => {
+    // If the item has a 'category' field, use it.
+    if (item.category && ['Bancos', 'Universidades', 'Hospitales'].includes(item.category)) {
+      return item.category;
+    }
+    // Fallback for legacy data: check the 'type' field.
+    if ((item.type as string)?.toLowerCase() === 'cooperativa' || (item.type as string)?.toLowerCase() === 'banco') {
       return 'Bancos';
     }
-    return item.category;
+    // Default to 'Bancos' or handle as an unknown category if needed
+    return 'Bancos';
   }
 
   const filteredData = useMemo(() => {
