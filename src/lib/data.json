@@ -3,98 +3,114 @@
     {
       "name": "Banco del Pacífico",
       "category": "Bancos",
-      "indicators": { "solvencia": 11.5, "liquidez": 35.2, "morosidad": 3.1 },
+      "indicators": {
+        "solvencia": 11.5,
+        "liquidez": 35.2,
+        "morosidad": 3.1
+      },
       "color": "#0033a0"
     },
     {
       "name": "Banco Pichincha",
       "category": "Bancos",
-      "indicators": { "solvencia": 12.1, "liquidez": 33.8, "morosidad": 2.8 },
+      "indicators": {
+        "solvencia": 12.1,
+        "liquidez": 33.8,
+        "morosidad": 2.8
+      },
       "color": "#ffd100"
+    },
+    {
+      "name": "Cooperativa JEP",
+      "category": "Bancos",
+      "type": "Cooperativa",
+      "indicators": {
+        "solvencia": 14.5,
+        "liquidez": 41.0,
+        "morosidad": 2.1
+      },
+      "color": "#f27d00"
     },
     {
       "name": "Banco de Guayaquil",
       "category": "Bancos",
-      "indicators": { "solvencia": 10.8, "liquidez": 30.5, "morosidad": 4.2 },
+      "indicators": {
+        "solvencia": 10.8,
+        "liquidez": 30.5,
+        "morosidad": 4.2
+      },
       "color": "#00539f"
     },
     {
-      "name": "Produbanco",
+      "name": "Cooperativa Alianza del Valle",
       "category": "Bancos",
-      "indicators": { "solvencia": 13.0, "liquidez": 38.1, "morosidad": 2.5 },
-      "color": "#d9232d"
-    },
-    {
-      "name": "Banco Internacional",
-      "category": "Bancos",
-      "indicators": { "solvencia": 14.2, "liquidez": 40.1, "morosidad": 1.9 },
+      "type": "Cooperativa",
+      "indicators": {
+        "solvencia": 13.8,
+        "liquidez": 39.5,
+        "morosidad": 2.9
+      },
       "color": "#007a33"
-    },
-    {
-      "name": "Banco Bolivariano",
-      "category": "Bancos",
-      "indicators": { "solvencia": 12.5, "liquidez": 36.4, "morosidad": 2.3 },
-      "color": "#ff7f00"
-    },
-    {
-      "name": "Banco del Austro",
-      "category": "Bancos",
-      "indicators": { "solvencia": 11.9, "liquidez": 34.9, "morosidad": 3.5 },
-      "color": "#a100ff"
-    },
-    {
-      "name": "Mutualista Pichincha",
-      "category": "Bancos",
-      "indicators": { "solvencia": 15.1, "liquidez": 42.0, "morosidad": 1.5 },
-      "color": "#f2c500"
     },
     {
       "name": "Universidad San Francisco de Quito",
       "category": "Universidades",
-      "indicators": { "nivel academico": 95, "investigacion": 88, "empleabilidad": 92 },
+      "indicators": {
+        "nivel academico": 95,
+        "investigacion": 88,
+        "empleabilidad": 92
+      },
       "color": "#8c1d40"
     },
     {
       "name": "Escuela Politécnica Nacional",
       "category": "Universidades",
-      "indicators": { "nivel academico": 92, "investigacion": 91, "empleabilidad": 85 },
+      "indicators": {
+        "nivel academico": 92,
+        "investigacion": 91,
+        "empleabilidad": 85
+      },
       "color": "#004b8d"
     },
     {
       "name": "Pontificia Universidad Católica del Ecuador",
       "category": "Universidades",
-      "indicators": { "nivel academico": 89, "investigacion": 85, "empleabilidad": 88 },
+      "indicators": {
+        "nivel academico": 89,
+        "investigacion": 85,
+        "empleabilidad": 88
+      },
       "color": "#fddc00"
-    },
-    {
-      "name": "Universidad de Cuenca",
-      "category": "Universidades",
-      "indicators": { "nivel academico": 85, "investigacion": 82, "empleabilidad": 80 },
-      "color": "#d9232d"
     },
     {
       "name": "Hospital Metropolitano",
       "category": "Hospitales",
-      "indicators": { "calidad de atencion": 9.5, "tiempo de espera": 20, "tasa de recuperacion": 98 },
+      "indicators": {
+        "calidad de atencion": 9.5,
+        "tiempo de espera": 20,
+        "tasa de recuperacion": 98
+      },
       "color": "#00a99d"
     },
     {
       "name": "Hospital de los Valles",
       "category": "Hospitales",
-      "indicators": { "calidad de atencion": 9.2, "tiempo de espera": 25, "tasa de recuperacion": 97 },
+      "indicators": {
+        "calidad de atencion": 9.2,
+        "tiempo de espera": 25,
+        "tasa de recuperacion": 97
+      },
       "color": "#e4002b"
     },
     {
       "name": "Hospital Carlos Andrade Marín (IESS)",
       "category": "Hospitales",
-      "indicators": { "calidad de atencion": 8.0, "tiempo de espera": 60, "tasa de recuperacion": 92 },
+      "indicators": {
+        "calidad de atencion": 8,
+        "tiempo de espera": 60,
+        "tasa de recuperacion": 92
+      },
       "color": "#0062a8"
-    },
-    {
-      "name": "Hospital Luis Vernaza",
-      "category": "Hospitales",
-      "indicators": { "calidad de atencion": 8.5, "tiempo de espera": 45, "tasa de recuperacion": 94 },
-      "color": "#f27d00"
     }
   ]
 }
