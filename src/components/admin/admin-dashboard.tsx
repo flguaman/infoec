@@ -75,7 +75,7 @@ export default function AdminDashboard() {
   
   const { data: currentData, isLoading: loading, error } = useCollection<DataItem>(dataItemsQuery);
   const { data: allInstitutions } = useCollection<DataItem>(useMemoFirebase(() => firestore ? collection(firestore, 'institutions') : null, [firestore]));
-  const { data: allUniversidades } = useCollection<DataItem>(useMemoFirebase(() => firestore ? collection(firestore, 'universidades') : null, [firestore]));
+  const { data: allUniversities } = useCollection<DataItem>(useMemoFirebase(() => firestore ? collection(firestore, 'universidades') : null, [firestore]));
   const { data: allHospitals } = useCollection<DataItem>(useMemoFirebase(() => firestore ? collection(firestore, 'hospitales') : null, [firestore]));
 
 
