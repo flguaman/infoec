@@ -1,66 +1,78 @@
 {
   "entities": {
-    "DataItem": {
-      "$schema": "http://json-schema.org/draft-07/schema#",
-      "title": "Data Item",
+    "Bank": {
+      "title": "Bank or Cooperative",
       "type": "object",
-      "description": "Represents a generic data item for various categories like Banks, Universities, or Hospitals, each with its own set of indicators.",
+      "description": "Represents a financial institution like a bank or cooperative.",
       "properties": {
-        "id": {
-          "type": "string",
-          "description": "Unique identifier for the DataItem."
-        },
-        "name": {
-          "type": "string",
-          "description": "Name of the item (e.g., 'Banco del Pacífico', 'Universidad San Francisco')."
-        },
-        "category": {
-          "type": "string",
-          "description": "The category of the item.",
-          "enum": ["Bancos", "Universidades", "Hospitales"]
-        },
-        "indicators": {
-          "type": "object",
-          "description": "A map of key-value pairs representing the specific indicators for the item's category.",
-          "additionalProperties": {
-            "type": "number"
-          }
-        },
-        "color": {
-          "type": "string",
-          "description": "A hex color code associated with the item for UI visualization."
-        }
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "solvencia": { "type": "number" },
+        "liquidez": { "type": "number" },
+        "morosidad": { "type": "number" },
+        "color": { "type": "string" }
       },
-      "required": [
-        "id",
-        "name",
-        "category",
-        "indicators"
-      ]
+      "required": ["name", "solvencia", "liquidez", "morosidad"]
+    },
+    "University": {
+      "title": "University",
+      "type": "object",
+      "description": "Represents a higher education institution.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "nivel academico": { "type": "number" },
+        "investigacion": { "type": "number" },
+        "empleabilidad": { "type": "number" },
+        "color": { "type": "string" }
+      },
+      "required": ["name", "nivel academico", "investigacion", "empleabilidad"]
+    },
+    "Hospital": {
+      "title": "Hospital",
+      "type": "object",
+      "description": "Represents a healthcare facility.",
+      "properties": {
+        "id": { "type": "string" },
+        "name": { "type": "string" },
+        "calidad de atencion": { "type": "number" },
+        "tiempo de espera": { "type": "number" },
+        "tasa de recuperacion": { "type": "number" },
+        "color": { "type": "string" }
+      },
+      "required": ["name", "calidad de atencion", "tiempo de espera", "tasa de recuperacion"]
     }
   },
   "auth": {
-    "providers": [
-      "password",
-      "anonymous"
-    ]
+    "providers": ["password", "anonymous"]
   },
   "firestore": {
     "structure": [
       {
         "path": "/institutions/{institutionId}",
         "definition": {
-          "entityName": "DataItem",
-          "schema": {
-            "$ref": "#/backend/entities/DataItem"
-          },
-          "description": "Stores generic data items for various categories. Publicly readable, admin-writable.",
-          "params": [
-            {
-              "name": "institutionId",
-              "description": "Unique identifier for the data item."
-            }
-          ]
+          "entityName": "Bank",
+          "schema": { "$ref": "#/backend/entities/Bank" },
+          "description": "Stores financial institutions (banks, cooperatives). Publicly readable, admin-writable.",
+          "params": [{ "name": "institutionId", "description": "Unique ID for the institution." }]
+        }
+      },
+      {
+        "path": "/universidades/{universityId}",
+        "definition": {
+          "entityName": "University",
+          "schema": { "$ref": "#/backend/entities/University" },
+          "description": "Stores university data. Publicly readable, admin-writable.",
+          "params": [{ "name": "universityId", "description": "Unique ID for the university." }]
+        }
+      },
+      {
+        "path": "/hospitales/{hospitalId}",
+        "definition": {
+          "entityName": "Hospital",
+          "schema": { "$ref": "#/backend/entities/Hospital" },
+          "description": "Stores hospital data. Publicly readable, admin-writable.",
+          "params": [{ "name": "hospitalId", "description": "Unique ID for the hospital." }]
         }
       }
     ]

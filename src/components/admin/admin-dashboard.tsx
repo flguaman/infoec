@@ -61,6 +61,12 @@ import { categoryIndicators } from '@/lib/types';
 
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
+const categoryToCollectionMap: Record<DataItemCategory, string> = {
+    Bancos: 'institutions',
+    Universidades: 'universidades',
+    Hospitales: 'hospitales',
+};
+
 const CustomBarChart = ({
   data,
   dataKey,
@@ -133,15 +139,21 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] =
     useState<DataItemCategory>('Bancos');
 
+  const collectionName = categoryToCollectionMap[activeTab];
+
   const dataItemsQuery = useMemoFirebase(
     () =>
       !isUserLoading && user && firestore
-        ? collection(firestore, 'institutions')
+        ? collection(firestore, collectionName)
         : null,
-    [firestore, user, isUserLoading]
+    [firestore, user, isUserLoading, collectionName]
   );
   
-  const { data: allDataItems, isLoading: loading, error } = useCollection<DataItem>(dataItemsQuery);
+  const { data: currentData, isLoading: loading, error } = useCollection<DataItem>(dataItemsQuery);
+  const { data: allInstitutions } = useCollection<DataItem>(useMemoFirebase(() => firestore ? collection(firestore, 'institutions') : null, [firestore]));
+  const { data: allUniversities } = useCollection<DataItem>(useMemoFirebase(() => firestore ? collection(firestore, 'universidades') : null, [firestore]));
+  const { data: allHospitals } = useCollection<DataItem>(useMemoFirebase(() => firestore ? collection(firestore, 'hospitales') : null, [firestore]));
+
 
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [selectedDataItem, setSelectedDataItem] = useState<DataItem | null>(
@@ -149,23 +161,6 @@ export default function AdminDashboard() {
   );
   const [isSeeding, setIsSeeding] = useState(false);
   
-  const getCategory = (item: DataItem): DataItemCategory => {
-    // If the item has a 'category' field, use it.
-    if (item.category && ['Bancos', 'Universidades', 'Hospitales'].includes(item.category)) {
-      return item.category;
-    }
-    // Fallback for legacy data: check the 'type' field.
-    if ((item.type as string)?.toLowerCase() === 'cooperativa' || (item.type as string)?.toLowerCase() === 'banco') {
-      return 'Bancos';
-    }
-    // Default to 'Bancos' or handle as an unknown category if needed
-    return 'Bancos';
-  }
-
-  const filteredData = useMemo(() => {
-    return allDataItems?.filter(item => getCategory(item) === activeTab) || [];
-  }, [allDataItems, activeTab]);
-
   const handleLogout = async () => {
     if (auth) {
       await signOut(auth);
@@ -210,28 +205,25 @@ export default function AdminDashboard() {
   };
 
   const stats = useMemo(() => {
-    if (!allDataItems) {
-      return { total: 0, banks: 0, universities: 0, hospitals: 0 };
-    }
     return {
-      total: allDataItems.length,
-      banks: allDataItems.filter((d) => getCategory(d) === 'Bancos').length,
-      universities: allDataItems.filter((d) => getCategory(d) === 'Universidades').length,
-      hospitals: allDataItems.filter((d) => getCategory(d) === 'Hospitales').length,
+      total: (allInstitutions?.length || 0) + (allUniversities?.length || 0) + (allHospitals?.length || 0),
+      banks: allInstitutions?.length || 0,
+      universities: allUniversities?.length || 0,
+      hospitals: allHospitals?.length || 0,
     };
-  }, [allDataItems]);
+  }, [allInstitutions, allUniversities, allHospitals]);
   
   const chartData = useMemo(() => {
     return (
-      filteredData?.map((item) => ({
+      currentData?.map((item) => ({
         name: item.name,
         color: item.color || '#8884d8',
-        ...item.indicators, // Spread the indicators object
+        ...item, // Spread the indicators
       })) || []
     );
-  }, [filteredData]);
+  }, [currentData]);
 
-  const isDatabaseEmpty = !loading && (!allDataItems || allDataItems.length === 0);
+  const isDatabaseEmpty = !loading && (!allInstitutions || allInstitutions.length === 0) && (!allUniversities || allUniversities.length === 0) && (!allHospitals || allHospitals.length === 0);
 
   return (
     <div className="flex-1 space-y-4 p-4 sm:p-6 md:p-8 pt-6 bg-muted/40 min-h-screen">
@@ -377,15 +369,15 @@ export default function AdminDashboard() {
                             </div>
                           </TableCell>
                         </TableRow>
-                      ) : filteredData.length > 0 ? (
-                        filteredData.map((item) => (
+                      ) : currentData && currentData.length > 0 ? (
+                        currentData.map((item) => (
                           <TableRow key={item.id}>
                             <TableCell className="font-medium flex items-center gap-2">
                                 <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color || '#ccc' }} />
                                 {item.name}
                             </TableCell>
                             {(categoryIndicators[activeTab] || []).map(key => {
-                                const value = item.indicators?.[key];
+                                const value = item[key];
                                 const isTime = key.includes('tiempo');
                                 return (
                                 <TableCell key={key} className="text-right">
@@ -427,6 +419,7 @@ export default function AdminDashboard() {
         <DialogContent>
           <DataItemForm
             dataItem={selectedDataItem}
+            category={activeTab}
             onClose={handleCloseForm}
           />
         </DialogContent>
@@ -434,5 +427,3 @@ export default function AdminDashboard() {
     </div>
   );
 }
-
-    

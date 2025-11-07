@@ -1,13 +1,12 @@
 'use client';
-import React, { useState, useMemo } from 'react';
-import { initialDataItems } from '@/lib/data.json';
-import { type DataItem, type DataItemCategory, categoryIndicators } from '@/lib/types';
+import React, { useMemo } from 'react';
+import { useFirestore, useCollection, useMemoFirebase } from '@/firebase';
 import {
   Card,
   CardContent,
-  CardDescription,
   CardHeader,
   CardTitle,
+  CardDescription,
 } from '@/components/ui/card';
 import {
   ChartContainer,
@@ -23,8 +22,14 @@ import {
   CartesianGrid,
   ResponsiveContainer,
   Cell,
+  Legend,
 } from 'recharts';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Loader2 } from 'lucide-react';
+import { collection } from 'firebase/firestore';
+import type { DataItem, DataItemCategory } from '@/lib/types';
+import { categoryIndicators } from '@/lib/types';
+
+const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 const CustomBarChart = ({
   data,
@@ -44,9 +49,10 @@ const CustomBarChart = ({
   };
 
   return (
-    <Card className="shadow-lg">
+    <Card>
       <CardHeader>
-        <CardTitle>Comparativa de {label}</CardTitle>
+        <CardTitle>{label}</CardTitle>
+        <CardDescription>Comparativa entre todas las categorías</CardDescription>
       </CardHeader>
       <CardContent className="pl-2">
         <ChartContainer config={chartConfig} className="h-[250px] w-full">
@@ -54,16 +60,18 @@ const CustomBarChart = ({
             <RechartsBarChart
               data={data}
               margin={{ top: 20, right: 20, bottom: 5, left: 0 }}
+              layout="vertical"
             >
-              <CartesianGrid vertical={false} />
-              <XAxis
+              <CartesianGrid horizontal={false} />
+              <YAxis
+                type="category"
                 dataKey="name"
                 tickLine={false}
-                tickMargin={10}
                 axisLine={false}
-                tickFormatter={(value) => value.slice(0, 3).toUpperCase()}
+                tickMargin={10}
+                width={120}
               />
-              <YAxis unit={unit} />
+              <XAxis type="number" unit={unit} />
               <ChartTooltip
                 cursor={false}
                 content={<ChartTooltipContent indicator="dot" />}
@@ -81,58 +89,121 @@ const CustomBarChart = ({
   );
 };
 
-
 export default function PublicDashboard() {
-  const [activeTab, setActiveTab] = useState<DataItemCategory>('Bancos');
+  const firestore = useFirestore();
 
-  const filteredData = useMemo(() => {
-    return initialDataItems.filter((item) => item.category === activeTab);
-  }, [activeTab]);
-
-  const chartData = useMemo(() => {
-    return (
-      filteredData?.map((item) => ({
-        id: item.name, // using name as id for local data
-        name: item.name,
-        color: item.color || '#8884d8',
-        ...item.indicators,
-      })) || []
+  const { data: banks, isLoading: loadingBanks } = useCollection<DataItem>(
+    useMemoFirebase(
+      () => (firestore ? collection(firestore, 'institutions') : null),
+      [firestore]
+    )
+  );
+  const { data: universities, isLoading: loadingUniversities } =
+    useCollection<DataItem>(
+      useMemoFirebase(
+        () => (firestore ? collection(firestore, 'universidades') : null),
+        [firestore]
+      )
     );
-  }, [filteredData]);
-  
+  const { data: hospitals, isLoading: loadingHospitals } =
+    useCollection<DataItem>(
+      useMemoFirebase(
+        () => (firestore ? collection(firestore, 'hospitales') : null),
+        [firestore]
+      )
+    );
+
+  const isLoading = loadingBanks || loadingUniversities || loadingHospitals;
+
+  const combinedData = useMemo(() => {
+    const allData = [
+      ...(banks || []),
+      ...(universities || []),
+      ...(hospitals || []),
+    ];
+    return allData;
+  }, [banks, universities, hospitals]);
+
+
+  const getChartDataForIndicator = (indicatorName: string) => {
+    if (!combinedData) return [];
+    return combinedData
+      .filter(item => typeof item[indicatorName] === 'number')
+      .map(item => ({
+        name: item.name,
+        [indicatorName]: item[indicatorName],
+        color: item.color || '#8884d8'
+      }));
+  };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-[50vh] items-center justify-center">
+        <Loader2 className="h-10 w-10 animate-spin text-primary" />
+        <p className="ml-4 text-lg text-muted-foreground">
+          Cargando indicadores...
+        </p>
+      </div>
+    );
+  }
+
   return (
     <div className="container mx-auto p-4 sm:p-6 md:p-8">
       <div className="text-center mb-12">
-        <h1 className="text-4xl md:text-5xl font-bold tracking-tight text-primary">
-          Panel de Indicadores Clave
+        <h1 className="text-4xl font-bold tracking-tight text-foreground sm:text-5xl">
+          Panel de Indicadores de Ecuador
         </h1>
-        <p className="mt-4 max-w-2xl mx-auto text-lg text-muted-foreground">
-          Explore y compare los datos de diferentes instituciones en Ecuador.
+        <p className="mt-4 text-lg text-muted-foreground">
+          Visualiza y compara datos clave de diferentes sectores del país.
         </p>
       </div>
 
-       <Tabs value={activeTab} onValueChange={(val) => setActiveTab(val as DataItemCategory)} className="w-full">
-        <div className="flex justify-center mb-8">
-            <TabsList>
-            <TabsTrigger value="Bancos">Bancos</TabsTrigger>
-            <TabsTrigger value="Universidades">Universidades</TabsTrigger>
-            <TabsTrigger value="Hospitales">Hospitales</TabsTrigger>
-            </TabsList>
-        </div>
-        <TabsContent value={activeTab}>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                {(categoryIndicators[activeTab] || []).map(indicator => (
-                  <CustomBarChart
+      <div className="space-y-8">
+        <div>
+          <h2 className="text-2xl font-semibold mb-4 border-b pb-2">Bancos y Cooperativas</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+             {categoryIndicators.Bancos.map(indicator => (
+                <CustomBarChart
                     key={indicator}
-                    data={chartData}
+                    data={getChartDataForIndicator(indicator)}
                     dataKey={indicator}
-                    label={indicator}
-                    unit={indicator.includes('Tiempo') ? 'min' : (indicator.includes('Calidad') ? '' : '%')}
-                  />
-                ))}
-            </div>
-        </TabsContent>
-      </Tabs>
+                    label={capitalize(indicator)}
+                    unit={indicator.includes('tiempo') ? 'min' : '%'}
+                />
+             ))}
+          </div>
+        </div>
+        
+        <div>
+          <h2 className="text-2xl font-semibold mb-4 border-b pb-2">Universidades</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+             {categoryIndicators.Universidades.map(indicator => (
+                <CustomBarChart
+                    key={indicator}
+                    data={getChartDataForIndicator(indicator)}
+                    dataKey={indicator}
+                    label={capitalize(indicator)}
+                    unit={indicator.includes('tiempo') ? 'min' : '%'}
+                />
+             ))}
+          </div>
+        </div>
+
+        <div>
+          <h2 className="text-2xl font-semibold mb-4 border-b pb-2">Hospitales</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+             {categoryIndicators.Hospitales.map(indicator => (
+                <CustomBarChart
+                    key={indicator}
+                    data={getChartDataForIndicator(indicator)}
+                    dataKey={indicator}
+                    label={capitalize(indicator)}
+                    unit={indicator.includes('tiempo') ? 'min' : '%'}
+                />
+             ))}
+          </div>
+        </div>
+      </div>
     </div>
   );
 }

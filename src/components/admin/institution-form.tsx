@@ -27,10 +27,13 @@ import { Loader2 } from 'lucide-react';
 import { useFirestore } from '@/firebase';
 import { doc } from 'firebase/firestore';
 
-// Adjusted to handle the nested 'indicators' object
-type FormState = Omit<DataItem, 'id' | 'indicators'> & {
-  indicators: { [key: string]: number };
+const categoryToCollectionMap: Record<DataItemCategory, string> = {
+    Bancos: 'institutions',
+    Universidades: 'universidades',
+    Hospitales: 'hospitales',
 };
+
+type FormState = Omit<DataItem, 'id'>;
 
 type FormErrors = {
   name?: string;
@@ -39,60 +42,53 @@ type FormErrors = {
   indicators?: { [key: string]: string };
 };
 
-const defaultInitialState: FormState = {
-  name: '',
-  category: 'Bancos',
-  color: '#2563eb',
-  indicators: {},
-};
-
 const capitalize = (s: string) => s.charAt(0).toUpperCase() + s.slice(1);
 
 export function DataItemForm({
   dataItem,
+  category,
   onClose,
 }: {
   dataItem: DataItem | null;
+  category: DataItemCategory;
   onClose: () => void;
 }) {
   const { toast } = useToast();
   const firestore = useFirestore();
-  const [formState, setFormState] = useState<FormState>(defaultInitialState);
+  
+  const [formState, setFormState] = useState<FormState>({} as FormState);
   const [errors, setErrors] = useState<FormErrors>({});
   const [loading, setLoading] = useState(false);
+  const [currentCategory, setCurrentCategory] = useState<DataItemCategory>(category);
 
   const isEditing = !!dataItem;
-  const currentCategory = formState.category || 'Bancos';
   const currentIndicators = categoryIndicators[currentCategory] || [];
 
   useEffect(() => {
     if (dataItem) {
+      setCurrentCategory(category);
       setFormState({
         name: dataItem.name,
-        category: dataItem.category,
-        color: dataItem.color || defaultInitialState.color,
-        // Ensure indicators is always an object
-        indicators: dataItem.indicators || {}, 
+        color: dataItem.color || '#2563eb',
+        ...currentIndicators.reduce((acc, key) => ({ ...acc, [key]: dataItem[key] || 0 }), {})
       });
     } else {
-      // Initialize with default state and zeroed indicators for the default category
-      const initialIndicators = (categoryIndicators['Bancos'] || []).reduce(
+      // Initialize with default state for the active category
+      const initialIndicators = (categoryIndicators[category] || []).reduce(
         (acc, key) => ({ ...acc, [key]: 0 }),
         {}
       );
-      setFormState({ ...defaultInitialState, indicators: initialIndicators });
+      setCurrentCategory(category);
+      setFormState({
+        name: '',
+        color: '#2563eb',
+        ...initialIndicators
+      });
     }
-  }, [dataItem]);
+  }, [dataItem, category]);
 
-  const handleChange = (field: keyof Omit<FormState, 'indicators'>, value: string) => {
+  const handleChange = (field: keyof FormState, value: string | number) => {
     setFormState((prev) => ({ ...prev, [field]: value }));
-  };
-
-  const handleIndicatorChange = (key: string, value: number) => {
-    setFormState((prev) => ({
-      ...prev,
-      indicators: { ...prev.indicators, [key]: value },
-    }));
   };
   
   const handleCategoryChange = (value: DataItemCategory) => {
@@ -100,11 +96,12 @@ export function DataItemForm({
       (acc, key) => ({ ...acc, [key]: 0 }),
       {}
     );
-    setFormState((prev) => ({
-      ...prev,
-      category: value,
-      indicators: newIndicators,
-    }));
+    setCurrentCategory(value);
+    setFormState({
+        name: formState.name, // keep name
+        color: formState.color, // keep color
+        ...newIndicators
+    });
   };
 
   const validate = () => {
@@ -112,24 +109,21 @@ export function DataItemForm({
     const nameValidation = dataItemSchema.name(formState.name);
     if (nameValidation !== true) newErrors.name = nameValidation;
     
-    const categoryValidation = dataItemSchema.category(formState.category);
-    if (categoryValidation !== true) newErrors.category = categoryValidation;
-    
     if (formState.color) {
       const colorValidation = dataItemSchema.color(formState.color);
       if (colorValidation !== true) newErrors.color = colorValidation;
     }
 
     currentIndicators.forEach((key) => {
-      const value = formState.indicators[key];
+      const value = formState[key];
       if (value === undefined || dataItemSchema.indicator(value) !== true) {
-        if (newErrors.indicators) {
-            newErrors.indicators[key] = 'Debe ser un número válido.';
-        }
+        if (!newErrors.indicators) newErrors.indicators = {};
+        newErrors.indicators[key] = 'Debe ser un número válido.';
       }
     });
 
     setErrors(newErrors);
+    // Check if there are any errors in the main object or in the nested indicators object
     return Object.keys(newErrors).length === 1 && Object.keys(newErrors.indicators || {}).length === 0;
   };
 
@@ -139,20 +133,21 @@ export function DataItemForm({
 
     setLoading(true);
 
-    // The form state already matches the DataItem structure
+    const collectionName = categoryToCollectionMap[currentCategory];
     const dataToSave = { ...formState };
+    // Remove non-indicator properties that might have been carried over
+    delete (dataToSave as any).category; 
 
     try {
       if (isEditing && dataItem) {
-        const itemRef = doc(firestore, 'institutions', dataItem.id);
+        const itemRef = doc(firestore, collectionName, dataItem.id);
         await updateInstitutionData(itemRef, dataToSave);
         toast({
           title: 'Datos actualizados',
           description: `Los datos de ${dataItem.name} se han guardado.`,
         });
       } else {
-        // Here, we explicitly cast to match the expected type
-        await addInstitutionData(firestore, dataToSave as Omit<DataItem, 'id'>);
+        await addInstitutionData(firestore, collectionName, dataToSave);
         toast({
           title: 'Elemento creado',
           description: `Se ha creado el nuevo elemento ${dataToSave.name}.`,
@@ -161,9 +156,10 @@ export function DataItemForm({
 
       onClose();
     } catch (error) {
+      console.error("Error saving data:", error);
       toast({
         title: `Error al ${isEditing ? 'actualizar' : 'crear'}`,
-        description: `No se pudieron guardar los datos.`,
+        description: `No se pudieron guardar los datos. Verifique la consola.`,
         variant: 'destructive',
       });
     } finally {
@@ -202,15 +198,15 @@ export function DataItemForm({
             Categoría
           </Label>
           <Select
-            onValueChange={handleCategoryChange}
-            value={formState.category}
+            onValueChange={(value) => handleCategoryChange(value as DataItemCategory)}
+            value={currentCategory}
             disabled={isEditing}
           >
             <SelectTrigger className="col-span-3">
               <SelectValue placeholder="Seleccione una categoría" />
             </SelectTrigger>
             <SelectContent>
-              {Object.keys(categoryIndicators).map((cat) => (
+              {Object.keys(categoryToCollectionMap).map((cat) => (
                 <SelectItem key={cat} value={cat}>
                   {cat}
                 </SelectItem>
@@ -228,9 +224,9 @@ export function DataItemForm({
               id={key}
               type="number"
               step="any"
-              value={formState.indicators[key] || ''}
+              value={formState[key] || ''}
               onChange={(e) =>
-                handleIndicatorChange(key, parseFloat(e.target.value) || 0)
+                handleChange(key, parseFloat(e.target.value) || 0)
               }
               className="col-span-3"
             />
@@ -275,5 +271,3 @@ export function DataItemForm({
     </form>
   );
 }
-
-    

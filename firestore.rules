@@ -7,19 +7,35 @@
  * This is a common pattern for apps with public content managed by admins.
  *
  * Data Structure:
- * All data is stored in the `/institutions/{institutionId}` collection.
+ * Data is now stored in separate collections per category:
+ * - /institutions/{bankId}
+ * - /universidades/{universityId}
+ * - /hospitales/{hospitalId}
  */
 rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
     /**
-     * @description Grants public read access, authenticated write access.
-     * @path /institutions/{institutionId}
-     * @allow (get, list): Any user (authenticated or not) can read.
-     * @allow (create, update, delete): Only signed-in users (admins) can write.
+     * @description Grants public read, admin write to financial institutions.
      */
     match /institutions/{institutionId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    /**
+     * @description Grants public read, admin write to universities.
+     */
+    match /universidades/{universityId} {
+      allow read: if true;
+      allow write: if isSignedIn();
+    }
+
+    /**
+     * @description Grants public read, admin write to hospitals.
+     */
+    match /hospitales/{hospitalId} {
       allow read: if true;
       allow write: if isSignedIn();
     }
