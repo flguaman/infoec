@@ -23,6 +23,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isSignedIn();
     }
+     match /institutions {
+      allow list: if true;
+    }
+
 
     /**
      * @description Grants public read, admin write to universities.
@@ -31,6 +35,10 @@ service cloud.firestore {
       allow read: if true;
       allow write: if isSignedIn();
     }
+    match /universidades {
+      allow list: if true;
+    }
+
 
     /**
      * @description Grants public read, admin write to hospitals.
@@ -38,6 +46,9 @@ service cloud.firestore {
     match /hospitales/{hospitalId} {
       allow read: if true;
       allow write: if isSignedIn();
+    }
+     match /hospitales {
+      allow list: if true;
     }
 
     // Helper function to check if a user is signed in.
