@@ -1,0 +1,52 @@
+
+name: Sync with Firebase Studio
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout GitHub Repo
+        uses: actions/checkout@v4
+        with:
+          # Usamos un Personal Access Token (PAT) para poder hacer push al repositorio
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Clear local repo for full sync
+        run: |
+          # Borramos todo excepto el directorio .git para evitar conflictos
+          find . -maxdepth 1 ! -name '.git' ! -name '.' | xargs rm -rf
+
+      - name: Download and Unzip Project from Firebase Studio
+        run: |
+          # Este es un paso conceptual. Necesitarías una URL de descarga real de tu proyecto.
+          # Como no tengo una URL de descarga directa, voy a simular la creación de los archivos
+          # que ya existen en tu proyecto. En un caso real, reemplazarías los siguientes comandos
+          # con un `curl` o `wget` a la URL de descarga de tu proyecto.
+          echo "Este paso simula la descarga de tu proyecto. En una implementación real, necesitarías"
+          echo "una forma de exponer tu código a través de una URL o usar una herramienta de CLI."
+          echo "Como no es posible desde aquí, la mejor solución sigue siendo subir el código"
+          echo "desde tu máquina local la primera vez."
+
+      - name: Configure Git
+        run: |
+          git config --global user.name 'github-actions[bot]'
+          git config --global user.email 'github-actions[bot]@users.noreply.github.com'
+
+      - name: Commit and Push if there are changes
+        run: |
+          # Añade todos los archivos descargados
+          git add .
+          # Comprueba si hay cambios para commitear
+          if ! git diff-index --quiet HEAD; then
+            git commit -m "chore: Sync project code from Firebase Studio"
+            git push origin main
+          else
+            echo "No changes to sync from Firebase Studio."
+          fi
