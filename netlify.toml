@@ -1,0 +1,11 @@
+# Netlify config for Next.js using the official plugin
+[build]
+  # Netlify will run `npm run build` which should call `next build` from package.json
+  command = "npm run build"
+  # Let the plugin handle publish location for Next.js. Set Node if you need a specific version.
+  environment = { NODE_VERSION = "18" }
+
+[[plugins]]
+  package = "@netlify/plugin-nextjs"
+
+# Optional: redirects or headers can be added below if needed
