@@ -2,8 +2,12 @@
 [build]
   # Netlify will run `npm run build` which should call `next build` from package.json
   command = "npm run build"
-  # Let the plugin handle publish location for Next.js. Set Node if you need a specific version.
-  environment = { NODE_VERSION = "18.17.0" }
+  # The plugin requires the publish directory to not be the repo root.
+  # Next.js produces a `.next` folder for a standard build; set that as publish.
+  publish = ".next"
+  # Ensure a compatible Node version is used during the build.
+  # We also committed a .nvmrc with 18.18.0; set NODE_VERSION here as a fallback.
+  environment = { NODE_VERSION = "18.18.0" }
 
 [[plugins]]
   package = "@netlify/plugin-nextjs"
