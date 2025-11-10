@@ -20,7 +20,7 @@ El frontend está construido con un enfoque en la interactividad, la reutilizaci
 
 ### Backend y Servicios
 
-El backend es "serverless" (sin servidor) y se apoya completamente en los servicios gestionados de Firebase, lo que permite un desarrollo rápido y escalable.
+Se apoya completamente en los servicios gestionados de Firebase, lo que permite un desarrollo rápido y escalable.
 
 - **Base de Datos:** **Cloud Firestore** se utiliza como la base de datos NoSQL en tiempo real. Los datos están organizados en colecciones separadas para cada categoría de institución (`institutions`, `universidades`, `hospitales`), lo que permite consultas eficientes y una estructura organizada.
 - **Autenticación:** **Firebase Authentication** gestiona el acceso seguro al panel de administración. Solo los usuarios autenticados (administradores) pueden crear, editar o eliminar datos.
